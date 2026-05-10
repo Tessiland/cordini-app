@@ -8,6 +8,7 @@ import { getProdotti } from './magazzino.js';
 let db;
 let operatoreCorrente = 'Operatori';
 let tuttiProdottiFiniti = [];
+let chipAttivo = 'tutti';
 
 export function setOperatorePF(email) {
   operatoreCorrente = email || 'Operatori';
@@ -20,96 +21,161 @@ export function getProdottiFiniti() {
 export function initProdottoFinito(firestoreDb) {
   db = firestoreDb;
   carica();
+
   document.getElementById('search-pf').addEventListener('input', render);
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
-  document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
-
-  // Quando cambia fornitore, aggiorna il select dei prodotti
-  document.getElementById('pf-fornitore').addEventListener('change', aggiornaProdottiSelect);
+  document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
+  document.getElementById('pf-fornitore').addEventListener('change', aggiornaTipologieSelect);
 }
 
 // ─── Caricamento real-time ───────────────────────────────────────
 function carica() {
   const q = query(collection(db, "prodotti_finiti"), orderBy("nome"));
   onSnapshot(q, snap => {
-    tuttiProdottiFiniti = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => {
-        const f = (a.fornitore ?? '').localeCompare(b.fornitore ?? '');
-        return f !== 0 ? f : (a.nome ?? '').localeCompare(b.nome ?? '');
-      });
+    tuttiProdottiFiniti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    aggiornaChips();
     render();
   }, err => console.error("Errore caricamento prodotti finiti:", err));
 }
 
-// ─── Render ──────────────────────────────────────────────────────
+// ─── Chip filter ──────────────────────────────────────────────────
+function aggiornaChips() {
+  const tipologie = ['tutti', ...new Set(
+    tuttiProdottiFiniti.map(p => p.nome).filter(Boolean).sort()
+  )];
+
+  const container = document.getElementById('pf-chip-filter');
+  container.innerHTML = '';
+  tipologie.forEach(t => {
+    const chip = document.createElement('button');
+    chip.className = `chip${chipAttivo === t ? ' active' : ''}`;
+    chip.textContent = t === 'tutti' ? 'Tutti' : t;
+    chip.addEventListener('click', () => {
+      chipAttivo = t;
+      container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      render();
+    });
+    container.appendChild(chip);
+  });
+}
+
+// ─── Render accordion ────────────────────────────────────────────
 function render() {
   const testo = document.getElementById('search-pf').value.toLowerCase();
-  const filtrati = tuttiProdottiFiniti.filter(p =>
-    p.nome?.toLowerCase().includes(testo) ||
-    p.fornitore?.toLowerCase().includes(testo) ||
-    p.partita?.toLowerCase().includes(testo)
-  );
+
+  let filtrati = tuttiProdottiFiniti.filter(p => {
+    const matchTipologia = chipAttivo === 'tutti' || p.nome === chipAttivo;
+    const matchTesto = !testo ||
+      p.fornitore?.toLowerCase().includes(testo) ||
+      p.nome?.toLowerCase().includes(testo) ||
+      p.colore?.toLowerCase().includes(testo) ||
+      p.partita?.toLowerCase().includes(testo);
+    return matchTipologia && matchTesto;
+  });
 
   const container = document.getElementById('list-prodotto-finito');
+
   if (filtrati.length === 0) {
-    container.innerHTML = '<p class="empty-state">Nessun prodotto finito registrato.</p>';
+    container.innerHTML = '<p class="empty-state">Nessun prodotto finito trovato.</p>';
     return;
   }
 
+  // Raggruppa per fornitore → tipologia
+  const perFornitore = {};
+  filtrati.forEach(p => {
+    const f = p.fornitore ?? '—';
+    const t = p.nome     ?? '—';
+    if (!perFornitore[f]) perFornitore[f] = {};
+    if (!perFornitore[f][t]) perFornitore[f][t] = [];
+    perFornitore[f][t].push(p);
+  });
+
+  // Mantieni aperti i blocchi già aperti
+  const aperti = new Set(
+    [...container.querySelectorAll('.pf-fornitore-block.open')]
+      .map(el => el.dataset.fornitore)
+  );
+
   container.innerHTML = '';
-  filtrati.forEach(p => container.appendChild(creaCard(p)));
+
+  Object.keys(perFornitore).sort().forEach(fornitore => {
+    const tipologie = perFornitore[fornitore];
+    const totale = Object.values(tipologie).flat().length;
+
+    const block = document.createElement('div');
+    block.className = `pf-fornitore-block${aperti.has(fornitore) || testo ? ' open' : ''}`;
+    block.dataset.fornitore = fornitore;
+
+    // Header fornitore
+    const header = document.createElement('div');
+    header.className = 'pf-fornitore-header';
+    header.innerHTML = `
+      <div>
+        <div class="pf-fornitore-name">${fornitore}</div>
+        <div class="pf-fornitore-count">${totale} prodott${totale === 1 ? 'o' : 'i'}</div>
+      </div>
+      <i class="fas fa-chevron-right pf-fornitore-chevron"></i>
+    `;
+    header.addEventListener('click', () => block.classList.toggle('open'));
+    block.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'pf-fornitore-body';
+
+    Object.keys(tipologie).sort().forEach(tipologia => {
+      const group = document.createElement('div');
+      group.className = 'pf-tipologia-group';
+      group.innerHTML = `<div class="pf-tipologia-label">${tipologia}</div>`;
+
+      tipologie[tipologia]
+        .sort((a, b) => (a.colore ?? '').localeCompare(b.colore ?? ''))
+        .forEach(p => group.appendChild(creaRigaColore(p)));
+
+      body.appendChild(group);
+    });
+
+    block.appendChild(body);
+    container.appendChild(block);
+  });
 }
 
-function creaCard(p) {
+function creaRigaColore(p) {
   const rocche = p.quantitaRocche ?? 0;
-  const soglia = p.sogliaAvviso  ?? 0;
+  const soglia  = p.sogliaAvviso  ?? 0;
 
-  let statusClass = 'status-ok';
-  let valueClass  = 'ok';
-  if (rocche <= soglia && rocche > 0) { statusClass = 'status-warning'; valueClass = 'warning'; }
-  if (rocche === 0)                   { statusClass = 'status-low';     valueClass = 'danger'; }
+  let stockClass = 'ok';
+  if (rocche <= soglia && rocche > 0) stockClass = 'warning';
+  if (rocche === 0)                   stockClass = 'danger';
 
-  const card = document.createElement('div');
-  card.className = `product-card ${statusClass}`;
-  card.dataset.id = p.id;
+  const row = document.createElement('div');
+  row.className = 'pf-color-row';
+  row.dataset.id = p.id;
 
-  card.innerHTML = `
-    <div class="product-card-top">
-      <div>
-        <div class="product-card-title">${p.nome}</div>
-        <div class="product-card-code">${p.partita ? `Partita: ${p.partita}` : '—'}</div>
-      </div>
-      <div class="product-card-controls">
-        <button class="btn-icon action-btn-edit edit-pf-btn" data-id="${p.id}" title="Modifica">
-          <i class="fas fa-pen"></i>
-        </button>
-        <button class="btn-icon action-btn-del delete-pf-btn" data-id="${p.id}" data-nome="${p.nome}" title="Elimina">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
+  row.innerHTML = `
+    <div class="pf-color-info">
+      <div class="pf-color-name">${p.colore ?? '—'}</div>
+      ${p.partita ? `<div class="pf-color-sub">Partita: ${p.partita}</div>` : ''}
     </div>
-    <div class="product-card-supplier">
-      <i class="fas fa-building" style="margin-right:4px;opacity:.5"></i>${p.fornitore}
+    <div>
+      <div class="pf-color-stock ${stockClass}">${rocche}</div>
+      <div class="pf-color-unit">rocche</div>
     </div>
-    <div class="product-card-stats">
-      <div class="stat-box" style="grid-column: span 2">
-        <div class="stat-value ${valueClass}">${rocche}</div>
-        <div class="stat-label">Rocche disponibili</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-value">${soglia}</div>
-        <div class="stat-label">Soglia</div>
-      </div>
-    </div>
-    <div class="product-card-qty">
-      <button class="qty-btn minus" data-id="${p.id}">−</button>
-      <button class="qty-btn plus"  data-id="${p.id}">+</button>
+    <div class="pf-color-actions">
+      <button class="pf-qty-btn minus" data-id="${p.id}">−</button>
+      <button class="pf-qty-btn plus"  data-id="${p.id}">+</button>
+      <button class="pf-row-menu edit-pf-btn" data-id="${p.id}" title="Modifica">
+        <i class="fas fa-pen"></i>
+      </button>
+      <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Elimina">
+        <i class="fas fa-trash"></i>
+      </button>
     </div>
   `;
 
-  return card;
+  return row;
 }
 
 // ─── Click delegato ──────────────────────────────────────────────
@@ -122,7 +188,7 @@ function gestisciClick(e) {
     apriModifica(id);
   } else if (btn.classList.contains('delete-pf-btn')) {
     elimina(id, btn.dataset.nome);
-  } else if (btn.classList.contains('plus') || btn.classList.contains('minus')) {
+  } else if (btn.classList.contains('pf-qty-btn')) {
     btn.disabled = true;
     const azione = btn.classList.contains('plus') ? 'increment' : 'decrement';
     aggiornaQuantita(id, azione).finally(() => { btn.disabled = false; });
@@ -131,8 +197,8 @@ function gestisciClick(e) {
 
 // ─── Quantità ────────────────────────────────────────────────────
 async function aggiornaQuantita(idProdotto, azione) {
-  const prodotto = tuttiProdottiFiniti.find(p => p.id === idProdotto);
-  if (!prodotto) return;
+  const p = tuttiProdottiFiniti.find(p => p.id === idProdotto);
+  if (!p) return;
   const ref = doc(db, "prodotti_finiti", idProdotto);
   try {
     await runTransaction(db, async t => {
@@ -143,7 +209,7 @@ async function aggiornaQuantita(idProdotto, azione) {
       t.update(ref, { quantitaRocche: nuova });
       t.set(doc(collection(db, "movimenti_pf")), {
         idProdotto,
-        nomeProdotto: `${prodotto.fornitore} — ${prodotto.nome}`,
+        nomeProdotto: `${p.fornitore} — ${p.nome} — ${p.colore}`,
         tipo:         azione === 'increment' ? 'carico' : 'prelievo',
         quantita:     1,
         quantitaDopo: nuova,
@@ -156,8 +222,8 @@ async function aggiornaQuantita(idProdotto, azione) {
   }
 }
 
-// ─── Popola select prodotti per fornitore ────────────────────────
-function aggiornaProdottiSelect(fornitoreSelezionato) {
+// ─── Popola tipologie per fornitore ──────────────────────────────
+function aggiornaTipologieSelect(fornitoreSelezionato) {
   const fornitore = typeof fornitoreSelezionato === 'string'
     ? fornitoreSelezionato
     : document.getElementById('pf-fornitore').value;
@@ -166,11 +232,11 @@ function aggiornaProdottiSelect(fornitoreSelezionato) {
     .filter(p => p.idFornitore === fornitore)
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
-  const nomeSelect = document.getElementById('pf-nome');
+  const sel = document.getElementById('pf-tipologia');
   if (prodottiFornitore.length === 0) {
-    nomeSelect.innerHTML = '<option value="">— Nessun prodotto per questo fornitore —</option>';
+    sel.innerHTML = '<option value="">— Nessun prodotto per questo fornitore —</option>';
   } else {
-    nomeSelect.innerHTML = prodottiFornitore
+    sel.innerHTML = prodottiFornitore
       .map(p => `<option value="${p.nome}">${p.nome}${p.codice ? ` (${p.codice})` : ''}</option>`)
       .join('');
   }
@@ -184,8 +250,7 @@ function apriAggiungi() {
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
-  // reset select prodotti
-  document.getElementById('pf-nome').innerHTML = '<option value="">— Seleziona prima un fornitore —</option>';
+  document.getElementById('pf-tipologia').innerHTML = '<option value="">— Seleziona prima un fornitore —</option>';
   openModal('modal-prodotto-finito');
 }
 
@@ -197,12 +262,12 @@ function apriModifica(id) {
   form.dataset.id   = id;
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
   document.getElementById('pf-fornitore').value = p.fornitore ?? '';
-  // popola prodotti per il fornitore e poi seleziona il valore
-  aggiornaProdottiSelect(p.fornitore ?? '');
-  document.getElementById('pf-nome').value   = p.nome    ?? '';
-  document.getElementById('pf-partita').value = p.partita ?? '';
-  document.getElementById('pf-rocche').value = p.quantitaRocche ?? 0;
-  document.getElementById('pf-soglia').value = p.sogliaAvviso  ?? 0;
+  aggiornaTipologieSelect(p.fornitore ?? '');
+  document.getElementById('pf-tipologia').value = p.nome    ?? '';
+  document.getElementById('pf-colore').value    = p.colore  ?? '';
+  document.getElementById('pf-partita').value   = p.partita ?? '';
+  document.getElementById('pf-rocche').value    = p.quantitaRocche ?? 0;
+  document.getElementById('pf-soglia').value    = p.sogliaAvviso  ?? 0;
   document.getElementById('pf-error').textContent = '';
   openModal('modal-prodotto-finito');
 }
@@ -217,11 +282,12 @@ async function salva(e) {
   saveBtn.disabled  = true;
 
   const dati = {
-    fornitore:     document.getElementById('pf-fornitore').value,
-    nome:          document.getElementById('pf-nome').value.trim(),
-    partita:       document.getElementById('pf-partita').value.trim(),
+    fornitore:      document.getElementById('pf-fornitore').value,
+    nome:           document.getElementById('pf-tipologia').value,
+    colore:         document.getElementById('pf-colore').value.trim(),
+    partita:        document.getElementById('pf-partita').value.trim(),
     quantitaRocche: Number(document.getElementById('pf-rocche').value),
-    sogliaAvviso:  Number(document.getElementById('pf-soglia').value)
+    sogliaAvviso:   Number(document.getElementById('pf-soglia').value)
   };
 
   try {
