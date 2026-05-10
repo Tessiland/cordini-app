@@ -1182,13 +1182,51 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 }
 .pf-tipologia-group:last-child { border-bottom: none; }
 
-.pf-tipologia-label {
-  padding: 0.625rem 1rem 0.375rem;
-  font-size: 0.72rem;
+.pf-tipologia-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  transition: background var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  gap: 0.5rem;
+}
+.pf-tipologia-header:hover { background: var(--bg-elevated); }
+
+.pf-tipologia-name {
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: -0.01em;
+}
+
+.pf-tipologia-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pf-tipologia-count {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.pf-tipologia-chevron {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  transition: transform var(--ease);
+}
+
+.pf-tipologia-group.open .pf-tipologia-chevron {
+  transform: rotate(90deg);
+}
+
+.pf-tipologia-body {
+  display: none;
+}
+.pf-tipologia-group.open .pf-tipologia-body {
+  display: block;
 }
 
 .pf-color-row {

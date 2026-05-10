@@ -8,7 +8,6 @@ import { getProdotti } from './magazzino.js';
 let db;
 let operatoreCorrente = 'Operatori';
 let tuttiProdottiFiniti = [];
-let chipAttivo = 'tutti';
 
 export function setOperatorePF(email) {
   operatoreCorrente = email || 'Operatori';
@@ -29,51 +28,29 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('pf-fornitore').addEventListener('change', aggiornaTipologieSelect);
 }
 
+// stato apertura accordion annidato
+const statiAperti = { fornitori: new Set(), tipologie: new Set() };
+
 // ─── Caricamento real-time ───────────────────────────────────────
 function carica() {
   const q = query(collection(db, "prodotti_finiti"), orderBy("nome"));
   onSnapshot(q, snap => {
     tuttiProdottiFiniti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    aggiornaChips();
     render();
   }, err => console.error("Errore caricamento prodotti finiti:", err));
 }
 
-// ─── Chip filter ──────────────────────────────────────────────────
-function aggiornaChips() {
-  const tipologie = ['tutti', ...new Set(
-    tuttiProdottiFiniti.map(p => p.nome).filter(Boolean).sort()
-  )];
-
-  const container = document.getElementById('pf-chip-filter');
-  container.innerHTML = '';
-  tipologie.forEach(t => {
-    const chip = document.createElement('button');
-    chip.className = `chip${chipAttivo === t ? ' active' : ''}`;
-    chip.textContent = t === 'tutti' ? 'Tutti' : t;
-    chip.addEventListener('click', () => {
-      chipAttivo = t;
-      container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      render();
-    });
-    container.appendChild(chip);
-  });
-}
-
-// ─── Render accordion ────────────────────────────────────────────
+// ─── Render accordion annidato ───────────────────────────────────
 function render() {
   const testo = document.getElementById('search-pf').value.toLowerCase();
 
-  let filtrati = tuttiProdottiFiniti.filter(p => {
-    const matchTipologia = chipAttivo === 'tutti' || p.nome === chipAttivo;
-    const matchTesto = !testo ||
-      p.fornitore?.toLowerCase().includes(testo) ||
-      p.nome?.toLowerCase().includes(testo) ||
-      p.colore?.toLowerCase().includes(testo) ||
-      p.partita?.toLowerCase().includes(testo);
-    return matchTipologia && matchTesto;
-  });
+  const filtrati = tuttiProdottiFiniti.filter(p =>
+    !testo ||
+    p.fornitore?.toLowerCase().includes(testo) ||
+    p.nome?.toLowerCase().includes(testo) ||
+    p.colore?.toLowerCase().includes(testo) ||
+    p.partita?.toLowerCase().includes(testo)
+  );
 
   const container = document.getElementById('list-prodotto-finito');
 
@@ -82,30 +59,26 @@ function render() {
     return;
   }
 
-  // Raggruppa per fornitore → tipologia
+  // Raggruppa: fornitore → tipologia → colori
   const perFornitore = {};
   filtrati.forEach(p => {
     const f = p.fornitore ?? '—';
-    const t = p.nome     ?? '—';
+    const t = p.nome      ?? '—';
     if (!perFornitore[f]) perFornitore[f] = {};
     if (!perFornitore[f][t]) perFornitore[f][t] = [];
     perFornitore[f][t].push(p);
   });
 
-  // Mantieni aperti i blocchi già aperti
-  const aperti = new Set(
-    [...container.querySelectorAll('.pf-fornitore-block.open')]
-      .map(el => el.dataset.fornitore)
-  );
-
   container.innerHTML = '';
+  const hasTesto = testo.length > 0;
 
   Object.keys(perFornitore).sort().forEach(fornitore => {
     const tipologie = perFornitore[fornitore];
-    const totale = Object.values(tipologie).flat().length;
+    const totale    = Object.values(tipologie).flat().length;
+    const fornAperto = statiAperti.fornitori.has(fornitore) || hasTesto;
 
     const block = document.createElement('div');
-    block.className = `pf-fornitore-block${aperti.has(fornitore) || testo ? ' open' : ''}`;
+    block.className = `pf-fornitore-block${fornAperto ? ' open' : ''}`;
     block.dataset.fornitore = fornitore;
 
     // Header fornitore
@@ -118,21 +91,51 @@ function render() {
       </div>
       <i class="fas fa-chevron-right pf-fornitore-chevron"></i>
     `;
-    header.addEventListener('click', () => block.classList.toggle('open'));
+    header.addEventListener('click', () => {
+      const aperto = block.classList.toggle('open');
+      aperto
+        ? statiAperti.fornitori.add(fornitore)
+        : statiAperti.fornitori.delete(fornitore);
+    });
     block.appendChild(header);
 
-    // Body
+    // Body fornitore
     const body = document.createElement('div');
     body.className = 'pf-fornitore-body';
 
     Object.keys(tipologie).sort().forEach(tipologia => {
-      const group = document.createElement('div');
-      group.className = 'pf-tipologia-group';
-      group.innerHTML = `<div class="pf-tipologia-label">${tipologia}</div>`;
+      const chiaveTip  = `${fornitore}__${tipologia}`;
+      const tipAperta  = statiAperti.tipologie.has(chiaveTip) || hasTesto;
+      const colori     = tipologie[tipologia];
 
-      tipologie[tipologia]
+      const group = document.createElement('div');
+      group.className = `pf-tipologia-group${tipAperta ? ' open' : ''}`;
+
+      // Header tipologia (cliccabile)
+      const tipHeader = document.createElement('div');
+      tipHeader.className = 'pf-tipologia-header';
+      tipHeader.innerHTML = `
+        <div class="pf-tipologia-name">${tipologia}</div>
+        <div class="pf-tipologia-info">
+          <span class="pf-tipologia-count">${colori.length} color${colori.length === 1 ? 'e' : 'i'}</span>
+          <i class="fas fa-chevron-right pf-tipologia-chevron"></i>
+        </div>
+      `;
+      tipHeader.addEventListener('click', () => {
+        const aperto = group.classList.toggle('open');
+        aperto
+          ? statiAperti.tipologie.add(chiaveTip)
+          : statiAperti.tipologie.delete(chiaveTip);
+      });
+      group.appendChild(tipHeader);
+
+      // Body tipologia — righe colori
+      const tipBody = document.createElement('div');
+      tipBody.className = 'pf-tipologia-body';
+      colori
         .sort((a, b) => (a.colore ?? '').localeCompare(b.colore ?? ''))
-        .forEach(p => group.appendChild(creaRigaColore(p)));
+        .forEach(p => tipBody.appendChild(creaRigaColore(p)));
+      group.appendChild(tipBody);
 
       body.appendChild(group);
     });
