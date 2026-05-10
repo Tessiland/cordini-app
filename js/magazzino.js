@@ -28,6 +28,9 @@ export function initMagazzino(firestoreDb) {
   document.getElementById('search-mp').addEventListener('input', renderProdotti);
   document.getElementById('filter-fornitore').addEventListener('change', renderProdotti);
 
+  // Bottone aggiungi materia prima nel tab
+  document.getElementById('add-mp-btn').addEventListener('click', apriModalAggiungi);
+
   // Nuovo fornitore nel form
   document.getElementById('add-fornitore-btn').addEventListener('click', async () => {
     const nome = prompt('Nome del nuovo fornitore:');

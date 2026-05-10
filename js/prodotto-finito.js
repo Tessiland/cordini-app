@@ -3,6 +3,7 @@ import {
   addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
+import { getProdotti } from './magazzino.js';
 
 let db;
 let operatoreCorrente = 'Operatori';
@@ -22,6 +23,10 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('search-pf').addEventListener('input', render);
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
+  document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
+
+  // Quando cambia fornitore, aggiorna il select dei prodotti
+  document.getElementById('pf-fornitore').addEventListener('change', aggiornaProdottiSelect);
 }
 
 // ─── Caricamento real-time ───────────────────────────────────────
@@ -146,6 +151,26 @@ async function aggiornaQuantita(idProdotto, azione) {
   }
 }
 
+// ─── Popola select prodotti per fornitore ────────────────────────
+function aggiornaProdottiSelect(fornitoreSelezionato) {
+  const fornitore = typeof fornitoreSelezionato === 'string'
+    ? fornitoreSelezionato
+    : document.getElementById('pf-fornitore').value;
+
+  const prodottiFornitore = getProdotti()
+    .filter(p => p.idFornitore === fornitore)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const nomeSelect = document.getElementById('pf-nome');
+  if (prodottiFornitore.length === 0) {
+    nomeSelect.innerHTML = '<option value="">— Nessun prodotto per questo fornitore —</option>';
+  } else {
+    nomeSelect.innerHTML = prodottiFornitore
+      .map(p => `<option value="${p.nome}">${p.nome}${p.codice ? ` (${p.codice})` : ''}</option>`)
+      .join('');
+  }
+}
+
 // ─── Modal ───────────────────────────────────────────────────────
 function apriAggiungi() {
   const form = document.getElementById('form-prodotto-finito');
@@ -154,6 +179,8 @@ function apriAggiungi() {
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
+  // reset select prodotti
+  document.getElementById('pf-nome').innerHTML = '<option value="">— Seleziona prima un fornitore —</option>';
   openModal('modal-prodotto-finito');
 }
 
@@ -165,10 +192,12 @@ function apriModifica(id) {
   form.dataset.id   = id;
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
   document.getElementById('pf-fornitore').value = p.fornitore ?? '';
-  document.getElementById('pf-nome').value      = p.nome     ?? '';
-  document.getElementById('pf-partita').value   = p.partita  ?? '';
-  document.getElementById('pf-rocche').value    = p.quantitaRocche ?? 0;
-  document.getElementById('pf-soglia').value    = p.sogliaAvviso  ?? 0;
+  // popola prodotti per il fornitore e poi seleziona il valore
+  aggiornaProdottiSelect(p.fornitore ?? '');
+  document.getElementById('pf-nome').value   = p.nome    ?? '';
+  document.getElementById('pf-partita').value = p.partita ?? '';
+  document.getElementById('pf-rocche').value = p.quantitaRocche ?? 0;
+  document.getElementById('pf-soglia').value = p.sogliaAvviso  ?? 0;
   document.getElementById('pf-error').textContent = '';
   openModal('modal-prodotto-finito');
 }

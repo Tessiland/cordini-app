@@ -60,9 +60,6 @@
       <section id="view-magazzino" class="view">
         <div class="view-header">
           <h2>Magazzino</h2>
-          <button id="add-product-btn" class="btn-primary btn-sm">
-            <i class="fas fa-plus"></i> Prodotto
-          </button>
         </div>
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="materia-prima">Materia Prima</button>
@@ -75,6 +72,9 @@
             <input type="text" id="search-mp" class="input-search" placeholder="Cerca per nome o codice…">
             <select id="filter-fornitore" class="input-select"></select>
           </div>
+          <button id="add-mp-btn" class="btn-primary btn-sm" style="margin-bottom:.875rem">
+            <i class="fas fa-plus"></i> Aggiungi Materia Prima
+          </button>
           <div id="list-materia-prima" class="product-list">
             <p class="empty-state">Caricamento…</p>
           </div>
@@ -83,8 +83,11 @@
         <!-- TAB Prodotto Finito -->
         <div id="tab-prodotto-finito" class="tab-content">
           <div class="filter-row">
-            <input type="text" id="search-pf" class="input-search" placeholder="Cerca per nome o codice…">
+            <input type="text" id="search-pf" class="input-search" placeholder="Cerca per fornitore o prodotto…">
           </div>
+          <button id="add-pf-btn" class="btn-primary btn-sm" style="margin-bottom:.875rem">
+            <i class="fas fa-plus"></i> Aggiungi Prodotto Finito
+          </button>
           <div id="list-prodotto-finito" class="product-list">
             <p class="empty-state">Nessun prodotto finito registrato.</p>
           </div>
@@ -267,8 +270,10 @@
           <select id="pf-fornitore" required></select>
         </div>
         <div class="field-group">
-          <label for="pf-nome">Nome / Colore</label>
-          <input type="text" id="pf-nome" placeholder="Es. Naturale, Ecru, Rosa Antico…" required>
+          <label for="pf-nome">Prodotto</label>
+          <select id="pf-nome" required>
+            <option value="">— Seleziona prima un fornitore —</option>
+          </select>
         </div>
         <div class="field-group">
           <label for="pf-partita">Partita <span style="color:var(--text-muted);font-weight:400">(opzionale)</span></label>
