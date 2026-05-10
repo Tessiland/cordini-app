@@ -31,9 +31,14 @@ export function initProdottoFinito(firestoreDb) {
 
 // ─── Caricamento real-time ───────────────────────────────────────
 function carica() {
-  const q = query(collection(db, "prodotti_finiti"), orderBy("fornitore"), orderBy("nome"));
+  const q = query(collection(db, "prodotti_finiti"), orderBy("nome"));
   onSnapshot(q, snap => {
-    tuttiProdottiFiniti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    tuttiProdottiFiniti = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const f = (a.fornitore ?? '').localeCompare(b.fornitore ?? '');
+        return f !== 0 ? f : (a.nome ?? '').localeCompare(b.nome ?? '');
+      });
     render();
   }, err => console.error("Errore caricamento prodotti finiti:", err));
 }
