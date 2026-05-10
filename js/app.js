@@ -1,6 +1,8 @@
-import { initFirebase }  from './firebase.js';
-import { initAuth }      from './auth.js';
-import { initNav, initModals } from './nav.js';
+import { initFirebase }            from './firebase.js';
+import { initAuth }                from './auth.js';
+import { initNav, initModals }     from './nav.js';
+import { initFornitori }           from './fornitori.js';
+import { initMagazzino, setOperatore } from './magazzino.js';
 
 async function main() {
   let firebase;
@@ -17,17 +19,16 @@ async function main() {
   const { auth, db } = firebase;
   let initialized = false;
 
-  initAuth(auth, async () => {
+  initAuth(auth, async (user) => {
     if (initialized) return;
     initialized = true;
 
+    setOperatore(user.email);
     initNav();
     initModals();
 
-    // Le sezioni verranno importate e inizializzate nei prossimi step di sviluppo.
-    // Esempio futuro:
-    // const { initMagazzino } = await import('./magazzino.js');
-    // initMagazzino(db);
+    await initFornitori(db);
+    initMagazzino(db);
   });
 }
 
