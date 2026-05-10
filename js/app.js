@@ -32,7 +32,7 @@ async function main() {
     initModals();
 
     await initFornitori(db);
-    await initTipologie(db);
+    try { await initTipologie(db); } catch (e) { console.error('initTipologie:', e); }
     initMagazzino(db);
     initProdottoFinito(db);
   });
