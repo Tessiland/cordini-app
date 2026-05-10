@@ -3,7 +3,8 @@ import {
   addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
-import { aggiuntaTipologia, aggiuntaColore } from './tipologie.js';
+import { aggiuntaTipologia } from './tipologie.js';
+import { getProdotti } from './magazzino.js';
 
 let db;
 let operatoreCorrente = 'Operatori';
@@ -26,7 +27,7 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
   document.getElementById('add-tipologia-btn').addEventListener('click', aggiuntaTipologia);
-  document.getElementById('add-colore-btn').addEventListener('click', aggiuntaColore);
+  document.getElementById('pf-fornitore').addEventListener('change', aggiornaColoriDaFornitore);
 }
 
 // stato apertura accordion annidato
@@ -226,6 +227,31 @@ async function aggiornaQuantita(idProdotto, azione) {
   }
 }
 
+// ─── Colori da materia prima ──────────────────────────────────────
+function aggiornaColoriDaFornitore(fornitoreSelezionato) {
+  const fornitore = typeof fornitoreSelezionato === 'string'
+    ? fornitoreSelezionato
+    : document.getElementById('pf-fornitore').value;
+
+  const sel = document.getElementById('pf-colore');
+
+  if (!fornitore) {
+    sel.innerHTML = '<option value="">— Seleziona prima un fornitore —</option>';
+    return;
+  }
+
+  const prodotti = getProdotti()
+    .filter(p => p.idFornitore === fornitore)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+
+  if (prodotti.length === 0) {
+    sel.innerHTML = '<option value="">— Nessun prodotto per questo fornitore —</option>';
+  } else {
+    sel.innerHTML = `<option value="">— Seleziona colore/prodotto —</option>` +
+      prodotti.map(p => `<option value="${p.nome}">${p.nome}${p.codice ? ` (${p.codice})` : ''}</option>`).join('');
+  }
+}
+
 // ─── Modal ───────────────────────────────────────────────────────
 function apriAggiungi() {
   const form = document.getElementById('form-prodotto-finito');
@@ -234,7 +260,7 @@ function apriAggiungi() {
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
-  document.getElementById('pf-tipologia').innerHTML = '<option value="">— Seleziona prima un fornitore —</option>';
+  aggiornaColoriDaFornitore('');
   openModal('modal-prodotto-finito');
 }
 
@@ -246,9 +272,10 @@ function apriModifica(id) {
   form.dataset.id   = id;
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
   document.getElementById('pf-fornitore').value = p.fornitore ?? '';
-  document.getElementById('pf-tipologia').value = p.nome     ?? '';
-  document.getElementById('pf-colore').value    = p.colore  ?? '';
-  document.getElementById('pf-partita').value   = p.partita ?? '';
+  document.getElementById('pf-tipologia').value = p.nome      ?? '';
+  aggiornaColoriDaFornitore(p.fornitore ?? '');
+  document.getElementById('pf-colore').value    = p.colore    ?? '';
+  document.getElementById('pf-partita').value   = p.partita   ?? '';
   document.getElementById('pf-rocche').value    = p.quantitaRocche ?? 0;
   document.getElementById('pf-soglia').value    = p.sogliaAvviso  ?? 0;
   document.getElementById('pf-error').textContent = '';
