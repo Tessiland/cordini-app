@@ -31,9 +31,9 @@ function aggiornaSelect() {
   document.querySelectorAll('#p-fornitore').forEach(el => {
     el.innerHTML = opzioniForm;
   });
-  // form prodotto finito
+  // form prodotto finito (con opzione vuota iniziale)
   document.querySelectorAll('#pf-fornitore').forEach(el => {
-    el.innerHTML = opzioniForm;
+    el.innerHTML = `<option value="">— Seleziona fornitore —</option>` + opzioniForm;
   });
 }
 

@@ -3,7 +3,7 @@ import {
   addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
-import { getProdotti } from './magazzino.js';
+import { aggiuntaTipologia, aggiuntaColore } from './tipologie.js';
 
 let db;
 let operatoreCorrente = 'Operatori';
@@ -25,7 +25,8 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
-  document.getElementById('pf-fornitore').addEventListener('change', aggiornaTipologieSelect);
+  document.getElementById('add-tipologia-btn').addEventListener('click', aggiuntaTipologia);
+  document.getElementById('add-colore-btn').addEventListener('click', aggiuntaColore);
 }
 
 // stato apertura accordion annidato
@@ -225,26 +226,6 @@ async function aggiornaQuantita(idProdotto, azione) {
   }
 }
 
-// ─── Popola tipologie per fornitore ──────────────────────────────
-function aggiornaTipologieSelect(fornitoreSelezionato) {
-  const fornitore = typeof fornitoreSelezionato === 'string'
-    ? fornitoreSelezionato
-    : document.getElementById('pf-fornitore').value;
-
-  const prodottiFornitore = getProdotti()
-    .filter(p => p.idFornitore === fornitore)
-    .sort((a, b) => a.nome.localeCompare(b.nome));
-
-  const sel = document.getElementById('pf-tipologia');
-  if (prodottiFornitore.length === 0) {
-    sel.innerHTML = '<option value="">— Nessun prodotto per questo fornitore —</option>';
-  } else {
-    sel.innerHTML = prodottiFornitore
-      .map(p => `<option value="${p.nome}">${p.nome}${p.codice ? ` (${p.codice})` : ''}</option>`)
-      .join('');
-  }
-}
-
 // ─── Modal ───────────────────────────────────────────────────────
 function apriAggiungi() {
   const form = document.getElementById('form-prodotto-finito');
@@ -265,8 +246,7 @@ function apriModifica(id) {
   form.dataset.id   = id;
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
   document.getElementById('pf-fornitore').value = p.fornitore ?? '';
-  aggiornaTipologieSelect(p.fornitore ?? '');
-  document.getElementById('pf-tipologia').value = p.nome    ?? '';
+  document.getElementById('pf-tipologia').value = p.nome     ?? '';
   document.getElementById('pf-colore').value    = p.colore  ?? '';
   document.getElementById('pf-partita').value   = p.partita ?? '';
   document.getElementById('pf-rocche').value    = p.quantitaRocche ?? 0;

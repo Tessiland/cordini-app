@@ -2,6 +2,7 @@ import { initFirebase }            from './firebase.js';
 import { initAuth }                from './auth.js';
 import { initNav, initModals }     from './nav.js';
 import { initFornitori }           from './fornitori.js';
+import { initTipologie }           from './tipologie.js';
 import { initMagazzino, setOperatore } from './magazzino.js';
 import { initProdottoFinito, setOperatorePF } from './prodotto-finito.js';
 
@@ -31,6 +32,7 @@ async function main() {
     initModals();
 
     await initFornitori(db);
+    await initTipologie(db);
     initMagazzino(db);
     initProdottoFinito(db);
   });
