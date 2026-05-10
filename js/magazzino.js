@@ -17,6 +17,8 @@ export function getProdotti() {
   return tuttiProdotti;
 }
 
+export { apriModalAggiungi };
+
 export function initMagazzino(firestoreDb) {
   db = firestoreDb;
 
@@ -25,11 +27,6 @@ export function initMagazzino(firestoreDb) {
   // Ricerca e filtro
   document.getElementById('search-mp').addEventListener('input', renderProdotti);
   document.getElementById('filter-fornitore').addEventListener('change', renderProdotti);
-
-  // Apri modal aggiungi
-  document.getElementById('add-product-btn').addEventListener('click', () => {
-    apriModalAggiungi();
-  });
 
   // Nuovo fornitore nel form
   document.getElementById('add-fornitore-btn').addEventListener('click', async () => {

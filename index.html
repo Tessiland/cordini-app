@@ -252,6 +252,44 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL — PRODOTTO FINITO ===================== -->
+  <div id="modal-prodotto-finito" class="modal-overlay hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 id="modal-pf-title" class="modal-title">Aggiungi Prodotto Finito</h3>
+        <button class="btn-icon modal-close" data-modal="modal-prodotto-finito">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <form id="form-prodotto-finito" data-mode="add" data-id="">
+        <div class="field-group">
+          <label for="pf-nome">Nome Prodotto</label>
+          <input type="text" id="pf-nome" placeholder="Es. Cordino 3mm Naturale — Rocche" required>
+        </div>
+        <div class="field-group">
+          <label for="pf-codice">Codice</label>
+          <input type="text" id="pf-codice" placeholder="Es. C3NAT">
+        </div>
+        <div class="field-group">
+          <label for="pf-rocche">Quantità Rocche</label>
+          <input type="number" id="pf-rocche" value="0" min="0" required>
+        </div>
+        <div class="field-group">
+          <label for="pf-soglia">Soglia Avviso</label>
+          <input type="number" id="pf-soglia" value="10" min="0" required>
+        </div>
+        <div class="field-group">
+          <label for="pf-note">Note</label>
+          <input type="text" id="pf-note" placeholder="Opzionale">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary modal-close" data-modal="modal-prodotto-finito">Annulla</button>
+          <button type="submit" class="btn-primary">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ===================== MODAL — ALERT ===================== -->
   <div id="modal-alert" class="modal-overlay hidden">
     <div class="modal-panel">
