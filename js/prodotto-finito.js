@@ -19,24 +19,18 @@ export function getProdottiFiniti() {
 export function initProdottoFinito(firestoreDb) {
   db = firestoreDb;
   carica();
-
   document.getElementById('search-pf').addEventListener('input', render);
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
+  document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
 }
 
-// ─── Modal Prodotto Finito (riusa modal-prodotto-finito) ─────────
-export function initModalPF() {
-  document.getElementById('form-prodotto-finito')
-    .addEventListener('submit', salva);
-}
-
-// ─── Caricamento ─────────────────────────────────────────────────
+// ─── Caricamento real-time ───────────────────────────────────────
 function carica() {
-  const q = query(collection(db, "prodotti_finiti"), orderBy("nome"));
+  const q = query(collection(db, "prodotti_finiti"), orderBy("fornitore"), orderBy("nome"));
   onSnapshot(q, snap => {
     tuttiProdottiFiniti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
-  });
+  }, err => console.error("Errore caricamento prodotti finiti:", err));
 }
 
 // ─── Render ──────────────────────────────────────────────────────
@@ -44,7 +38,8 @@ function render() {
   const testo = document.getElementById('search-pf').value.toLowerCase();
   const filtrati = tuttiProdottiFiniti.filter(p =>
     p.nome?.toLowerCase().includes(testo) ||
-    p.codice?.toLowerCase().includes(testo)
+    p.fornitore?.toLowerCase().includes(testo) ||
+    p.partita?.toLowerCase().includes(testo)
   );
 
   const container = document.getElementById('list-prodotto-finito');
@@ -58,13 +53,13 @@ function render() {
 }
 
 function creaCard(p) {
-  const rocche  = p.quantitaRocche ?? 0;
-  const soglia  = p.sogliaAvviso  ?? 0;
+  const rocche = p.quantitaRocche ?? 0;
+  const soglia = p.sogliaAvviso  ?? 0;
 
   let statusClass = 'status-ok';
   let valueClass  = 'ok';
   if (rocche <= soglia && rocche > 0) { statusClass = 'status-warning'; valueClass = 'warning'; }
-  if (rocche === 0)                    { statusClass = 'status-low';     valueClass = 'danger'; }
+  if (rocche === 0)                   { statusClass = 'status-low';     valueClass = 'danger'; }
 
   const card = document.createElement('div');
   card.className = `product-card ${statusClass}`;
@@ -74,7 +69,7 @@ function creaCard(p) {
     <div class="product-card-top">
       <div>
         <div class="product-card-title">${p.nome}</div>
-        <div class="product-card-code">${p.codice || '—'}</div>
+        <div class="product-card-code">${p.partita ? `Partita: ${p.partita}` : '—'}</div>
       </div>
       <div class="product-card-controls">
         <button class="btn-icon action-btn-edit edit-pf-btn" data-id="${p.id}" title="Modifica">
@@ -84,6 +79,9 @@ function creaCard(p) {
           <i class="fas fa-trash"></i>
         </button>
       </div>
+    </div>
+    <div class="product-card-supplier">
+      <i class="fas fa-building" style="margin-right:4px;opacity:.5"></i>${p.fornitore}
     </div>
     <div class="product-card-stats">
       <div class="stat-box" style="grid-column: span 2">
@@ -95,7 +93,6 @@ function creaCard(p) {
         <div class="stat-label">Soglia</div>
       </div>
     </div>
-    ${p.note ? `<div class="product-card-supplier" style="margin-top:.5rem"><i class="fas fa-note-sticky" style="margin-right:4px;opacity:.5"></i>${p.note}</div>` : ''}
     <div class="product-card-qty">
       <button class="qty-btn minus" data-id="${p.id}">−</button>
       <button class="qty-btn plus"  data-id="${p.id}">+</button>
@@ -111,9 +108,11 @@ function gestisciClick(e) {
   if (!btn) return;
   const id = btn.dataset.id;
 
-  if (btn.classList.contains('edit-pf-btn'))   apriModifica(id);
-  else if (btn.classList.contains('delete-pf-btn')) elimina(id, btn.dataset.nome);
-  else if (btn.classList.contains('plus') || btn.classList.contains('minus')) {
+  if (btn.classList.contains('edit-pf-btn')) {
+    apriModifica(id);
+  } else if (btn.classList.contains('delete-pf-btn')) {
+    elimina(id, btn.dataset.nome);
+  } else if (btn.classList.contains('plus') || btn.classList.contains('minus')) {
     btn.disabled = true;
     const azione = btn.classList.contains('plus') ? 'increment' : 'decrement';
     aggiornaQuantita(id, azione).finally(() => { btn.disabled = false; });
@@ -134,7 +133,7 @@ async function aggiornaQuantita(idProdotto, azione) {
       t.update(ref, { quantitaRocche: nuova });
       t.set(doc(collection(db, "movimenti_pf")), {
         idProdotto,
-        nomeProdotto: prodotto.nome,
+        nomeProdotto: `${prodotto.fornitore} — ${prodotto.nome}`,
         tipo:         azione === 'increment' ? 'carico' : 'prelievo',
         quantita:     1,
         quantitaDopo: nuova,
@@ -154,6 +153,7 @@ function apriAggiungi() {
   form.dataset.mode = 'add';
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
+  document.getElementById('pf-error').textContent = '';
   openModal('modal-prodotto-finito');
 }
 
@@ -164,24 +164,32 @@ function apriModifica(id) {
   form.dataset.mode = 'edit';
   form.dataset.id   = id;
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
-  document.getElementById('pf-nome').value   = p.nome   ?? '';
-  document.getElementById('pf-codice').value = p.codice ?? '';
-  document.getElementById('pf-rocche').value = p.quantitaRocche ?? 0;
-  document.getElementById('pf-soglia').value = p.sogliaAvviso  ?? 0;
-  document.getElementById('pf-note').value   = p.note ?? '';
+  document.getElementById('pf-fornitore').value = p.fornitore ?? '';
+  document.getElementById('pf-nome').value      = p.nome     ?? '';
+  document.getElementById('pf-partita').value   = p.partita  ?? '';
+  document.getElementById('pf-rocche').value    = p.quantitaRocche ?? 0;
+  document.getElementById('pf-soglia').value    = p.sogliaAvviso  ?? 0;
+  document.getElementById('pf-error').textContent = '';
   openModal('modal-prodotto-finito');
 }
 
 async function salva(e) {
   e.preventDefault();
-  const form = e.target;
+  const form    = e.target;
+  const errEl   = document.getElementById('pf-error');
+  const saveBtn = form.querySelector('[type="submit"]');
+
+  errEl.textContent = '';
+  saveBtn.disabled  = true;
+
   const dati = {
+    fornitore:     document.getElementById('pf-fornitore').value,
     nome:          document.getElementById('pf-nome').value.trim(),
-    codice:        document.getElementById('pf-codice').value.trim(),
+    partita:       document.getElementById('pf-partita').value.trim(),
     quantitaRocche: Number(document.getElementById('pf-rocche').value),
-    sogliaAvviso:  Number(document.getElementById('pf-soglia').value),
-    note:          document.getElementById('pf-note').value.trim()
+    sogliaAvviso:  Number(document.getElementById('pf-soglia').value)
   };
+
   try {
     if (form.dataset.mode === 'edit') {
       await updateDoc(doc(db, "prodotti_finiti", form.dataset.id), dati);
@@ -191,6 +199,9 @@ async function salva(e) {
     closeModal('modal-prodotto-finito');
   } catch (err) {
     console.error("Errore salvataggio prodotto finito:", err);
+    errEl.textContent = 'Errore nel salvataggio. Controlla la connessione.';
+  } finally {
+    saveBtn.disabled = false;
   }
 }
 
@@ -203,5 +214,4 @@ async function elimina(id, nome) {
   }
 }
 
-// esposto per far aprire il modal dal bottone "Prodotto" nel tab corretto
 export { apriAggiungi as apriModalAggiuntaPF };

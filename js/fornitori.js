@@ -27,11 +27,13 @@ function aggiornaSelect() {
   document.querySelectorAll('#filter-fornitore').forEach(el => {
     el.innerHTML = opzioniTutti;
   });
+  // form materia prima
   document.querySelectorAll('#p-fornitore').forEach(el => {
     el.innerHTML = opzioniForm;
   });
-  document.querySelectorAll('#a-prodotto').forEach(el => {
-    // viene gestito da alert.js
+  // form prodotto finito
+  document.querySelectorAll('#pf-fornitore').forEach(el => {
+    el.innerHTML = opzioniForm;
   });
 }
 

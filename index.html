@@ -263,12 +263,16 @@
       </div>
       <form id="form-prodotto-finito" data-mode="add" data-id="">
         <div class="field-group">
-          <label for="pf-nome">Nome Prodotto</label>
-          <input type="text" id="pf-nome" placeholder="Es. Cordino 3mm Naturale — Rocche" required>
+          <label for="pf-fornitore">Fornitore</label>
+          <select id="pf-fornitore" required></select>
         </div>
         <div class="field-group">
-          <label for="pf-codice">Codice</label>
-          <input type="text" id="pf-codice" placeholder="Es. C3NAT">
+          <label for="pf-nome">Nome / Colore</label>
+          <input type="text" id="pf-nome" placeholder="Es. Naturale, Ecru, Rosa Antico…" required>
+        </div>
+        <div class="field-group">
+          <label for="pf-partita">Partita <span style="color:var(--text-muted);font-weight:400">(opzionale)</span></label>
+          <input type="text" id="pf-partita" placeholder="Es. LOT-2024-08">
         </div>
         <div class="field-group">
           <label for="pf-rocche">Quantità Rocche</label>
@@ -278,10 +282,7 @@
           <label for="pf-soglia">Soglia Avviso</label>
           <input type="number" id="pf-soglia" value="10" min="0" required>
         </div>
-        <div class="field-group">
-          <label for="pf-note">Note</label>
-          <input type="text" id="pf-note" placeholder="Opzionale">
-        </div>
+        <p id="pf-error" class="error-msg"></p>
         <div class="modal-actions">
           <button type="button" class="btn-secondary modal-close" data-modal="modal-prodotto-finito">Annulla</button>
           <button type="submit" class="btn-primary">Salva</button>
