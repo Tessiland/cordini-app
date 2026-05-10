@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cordini — Tessiland</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧶</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===================== LOGIN ===================== -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="brand-monogram">C</span>
+        <span class="login-logo-text">Cordini</span>
+      </div>
+      <p class="login-subtitle">Gestionale Magazzino</p>
+      <form id="login-form">
+        <div class="field-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="nome@tessiland.com" autocomplete="email" required>
+        </div>
+        <div class="field-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary btn-full">Accedi</button>
+        <p id="login-error" class="error-msg"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== APP ===================== -->
+  <div id="app" class="hidden">
+
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-brand">
+        <span class="brand-monogram brand-monogram--sm">C</span>
+        <span class="brand-name">Cordini</span>
+      </div>
+      <div class="header-user">
+        <span id="user-email-display"></span>
+        <button id="logout-btn" class="btn-icon" title="Esci">
+          <i class="fas fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="app-content">
+
+      <!-- ========== MAGAZZINO ========== -->
+      <section id="view-magazzino" class="view">
+        <div class="view-header">
+          <h2>Magazzino</h2>
+          <button id="add-product-btn" class="btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Prodotto
+          </button>
+        </div>
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="materia-prima">Materia Prima</button>
+          <button class="tab-btn" data-tab="prodotto-finito">Prodotto Finito</button>
+        </div>
+
+        <!-- TAB Materia Prima -->
+        <div id="tab-materia-prima" class="tab-content active">
+          <div class="filter-row">
+            <input type="text" id="search-mp" class="input-search" placeholder="Cerca per nome o codice…">
+            <select id="filter-fornitore" class="input-select"></select>
+          </div>
+          <div id="list-materia-prima" class="product-list">
+            <p class="empty-state">Caricamento…</p>
+          </div>
+        </div>
+
+        <!-- TAB Prodotto Finito -->
+        <div id="tab-prodotto-finito" class="tab-content">
+          <div class="filter-row">
+            <input type="text" id="search-pf" class="input-search" placeholder="Cerca per nome o codice…">
+          </div>
+          <div id="list-prodotto-finito" class="product-list">
+            <p class="empty-state">Nessun prodotto finito registrato.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== ALERT ========== -->
+      <section id="view-alert" class="view hidden">
+        <div class="view-header">
+          <h2>Alert</h2>
+          <button id="add-alert-btn" class="btn-warning btn-sm">
+            <i class="fas fa-plus"></i> Nuovo
+          </button>
+        </div>
+        <div id="alert-list" class="alert-list">
+          <p class="empty-state">Nessun alert attivo.</p>
+        </div>
+      </section>
+
+      <!-- ========== ORDINI ========== -->
+      <section id="view-ordini" class="view hidden">
+        <div class="view-header">
+          <h2>Ordini</h2>
+        </div>
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="proposte">Proposte</button>
+          <button class="tab-btn" data-tab="storico">Storico</button>
+        </div>
+        <div id="tab-proposte" class="tab-content active">
+          <div id="list-proposte">
+            <p class="empty-state">Nessun prodotto da ordinare.</p>
+          </div>
+        </div>
+        <div id="tab-storico" class="tab-content">
+          <div id="list-storico">
+            <p class="empty-state">Nessun ordine attivo.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== BACHECA ========== -->
+      <section id="view-bacheca" class="view hidden">
+        <div class="view-header">
+          <h2>Bacheca</h2>
+        </div>
+        <form id="message-form" class="message-composer">
+          <select id="operator-select" class="input-select">
+            <option>Alessandro</option>
+            <option>Operatori</option>
+            <option>Centrale Operativa</option>
+          </select>
+          <textarea id="message-text" placeholder="Scrivi un messaggio…" rows="2"></textarea>
+          <button type="submit" class="btn-primary btn-sm">
+            <i class="fas fa-paper-plane"></i> Invia
+          </button>
+        </form>
+        <div id="message-list" class="message-list"></div>
+      </section>
+
+      <!-- ========== PRODUZIONE ========== -->
+      <section id="view-produzione" class="view hidden">
+        <div class="view-header">
+          <h2>Produzione</h2>
+        </div>
+        <div class="upload-card">
+          <h3>Carica Ordine di Produzione</h3>
+          <div class="field-group">
+            <label for="production-name">Nome ordine</label>
+            <input type="text" id="production-name" class="input-text" placeholder="Es. Settimana 35">
+          </div>
+          <div class="field-group">
+            <label for="production-file">File Excel</label>
+            <input type="file" id="production-file" accept=".xlsx,.xls">
+          </div>
+          <button id="upload-production-btn" class="btn-primary">
+            <i class="fas fa-upload"></i> Carica Ordine
+          </button>
+        </div>
+        <div id="production-list" class="accordion-list"></div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="magazzino">
+        <i class="fas fa-warehouse"></i>
+        <span>Magazzino</span>
+      </button>
+      <button class="nav-item" data-view="alert">
+        <i class="fas fa-bell"></i>
+        <span>Alert</span>
+        <span id="alert-badge" class="badge hidden"></span>
+      </button>
+      <button class="nav-item" data-view="ordini">
+        <i class="fas fa-file-invoice"></i>
+        <span>Ordini</span>
+      </button>
+      <button class="nav-item" data-view="bacheca">
+        <i class="fas fa-comments"></i>
+        <span>Bacheca</span>
+        <span id="bacheca-badge" class="badge hidden">!</span>
+      </button>
+      <button class="nav-item" data-view="produzione">
+        <i class="fas fa-industry"></i>
+        <span>Produzione</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ===================== MODAL — PRODOTTO ===================== -->
+  <div id="modal-prodotto" class="modal-overlay hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 id="modal-prodotto-title" class="modal-title">Aggiungi Prodotto</h3>
+        <button class="btn-icon modal-close" data-modal="modal-prodotto">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <form id="form-prodotto" data-mode="add" data-id="">
+        <div class="field-group">
+          <label for="p-nome">Nome Prodotto</label>
+          <input type="text" id="p-nome" required>
+        </div>
+        <div class="field-group">
+          <label for="p-codice">Codice</label>
+          <input type="text" id="p-codice">
+        </div>
+        <div class="field-group">
+          <label for="p-fornitore">Fornitore</label>
+          <div class="input-row">
+            <select id="p-fornitore" required></select>
+            <button type="button" id="add-fornitore-btn" class="btn-secondary btn-sm">+ Nuovo</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="p-quantita">Quantità Disponibile</label>
+          <input type="number" id="p-quantita" value="0" min="0" required>
+        </div>
+        <div class="field-group">
+          <label for="p-soglia">Soglia Avviso</label>
+          <input type="number" id="p-soglia" value="5" min="0" required>
+        </div>
+        <div class="field-group">
+          <label>Unità di Acquisto</label>
+          <div class="radio-row">
+            <label class="radio-option">
+              <input type="radio" name="p-unita" value="BOX" checked> BOX
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="p-unita" value="KG"> KG
+            </label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="p-minimo">Minimo Ordinabile</label>
+          <input type="number" id="p-minimo" value="1" min="1" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary modal-close" data-modal="modal-prodotto">Annulla</button>
+          <button type="submit" class="btn-primary">Salva Prodotto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL — ALERT ===================== -->
+  <div id="modal-alert" class="modal-overlay hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 class="modal-title">Nuovo Alert Manuale</h3>
+        <button class="btn-icon modal-close" data-modal="modal-alert">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <form id="form-alert">
+        <div class="field-group">
+          <label for="a-prodotto">Prodotto</label>
+          <select id="a-prodotto" required></select>
+        </div>
+        <div class="field-group">
+          <label for="a-motivo">Motivo</label>
+          <input type="text" id="a-motivo" placeholder="Es. Tutorial in uscita — Cordino 3mm Naturale" required>
+        </div>
+        <div class="field-group">
+          <label for="a-livello">Priorità</label>
+          <select id="a-livello">
+            <option value="critical">Critico</option>
+            <option value="warning" selected>Attenzione</option>
+            <option value="info">Informativo</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary modal-close" data-modal="modal-alert">Annulla</button>
+          <button type="submit" class="btn-primary">Crea Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
