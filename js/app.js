@@ -5,6 +5,7 @@ import { initFornitori }           from './fornitori.js';
 import { initTipologie }           from './tipologie.js';
 import { initMagazzino, setOperatore } from './magazzino.js';
 import { initProdottoFinito, setOperatorePF } from './prodotto-finito.js';
+import { initCatalogo }                       from './catalogo.js';
 
 async function main() {
   let firebase;
@@ -35,6 +36,7 @@ async function main() {
     try { await initTipologie(db); } catch (e) { console.error('initTipologie:', e); }
     initMagazzino(db);
     initProdottoFinito(db);
+    try { initCatalogo(db, user.email); } catch (e) { console.error('initCatalogo:', e); }
   });
 }
 

@@ -167,6 +167,22 @@
         <div id="production-list" class="accordion-list"></div>
       </section>
 
+      <!-- ========== CATALOGO ========== -->
+      <section id="view-catalogo" class="view hidden">
+        <div class="view-header">
+          <h2>Catalogo</h2>
+          <button id="add-anagrafica-btn" class="btn-primary btn-sm admin-only hidden">
+            <i class="fas fa-plus"></i> Nuovo Prodotto
+          </button>
+        </div>
+        <div class="filter-row">
+          <input type="text" id="search-catalogo" class="input-search" placeholder="Cerca per nome o SKU…">
+        </div>
+        <div id="list-catalogo" class="catalogo-list">
+          <p class="empty-state">Nessun prodotto in catalogo.</p>
+        </div>
+      </section>
+
     </main>
 
     <!-- BOTTOM NAVIGATION -->
@@ -193,8 +209,59 @@
         <i class="fas fa-industry"></i>
         <span>Produzione</span>
       </button>
+      <button class="nav-item" data-view="catalogo">
+        <i class="fas fa-book-open"></i>
+        <span>Catalogo</span>
+      </button>
     </nav>
 
+  </div>
+
+  <!-- ===================== MODAL — ANAGRAFICA ===================== -->
+  <div id="modal-anagrafica" class="modal-overlay hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 id="modal-anagrafica-title" class="modal-title">Nuovo Prodotto Catalogo</h3>
+        <button class="btn-icon modal-close" data-modal="modal-anagrafica">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <form id="form-anagrafica" data-mode="add" data-id="">
+        <div class="field-group">
+          <label for="a-nome">Nome Prodotto</label>
+          <input type="text" id="a-nome" placeholder="Es. Thai Sublime" required>
+        </div>
+        <div class="field-group">
+          <label for="a-sku">SKU</label>
+          <input type="text" id="a-sku" placeholder="Es. TS001">
+        </div>
+        <div class="field-group">
+          <label for="a-barcode">Barcode</label>
+          <input type="text" id="a-barcode" placeholder="Es. 8034567890123">
+        </div>
+        <div class="field-group">
+          <label for="a-peso">Peso Formato (grammi per rocca)</label>
+          <input type="number" id="a-peso" placeholder="Es. 200" min="1" step="1" required>
+        </div>
+
+        <div class="componenti-section">
+          <div class="componenti-header">
+            <span class="componenti-label">Composizione</span>
+            <span id="a-perc-totale" class="perc-totale">0%</span>
+          </div>
+          <div id="componenti-list" class="componenti-list"></div>
+          <button type="button" id="add-componente-btn" class="btn-ghost" style="margin-top:.5rem">
+            <i class="fas fa-plus"></i> Aggiungi componente
+          </button>
+        </div>
+
+        <p id="a-error" class="error-msg"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary modal-close" data-modal="modal-anagrafica">Annulla</button>
+          <button type="submit" class="btn-primary">Salva</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- ===================== MODAL — PRODOTTO ===================== -->

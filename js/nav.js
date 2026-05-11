@@ -1,4 +1,4 @@
-const VIEWS = ['magazzino', 'alert', 'ordini', 'bacheca', 'produzione'];
+const VIEWS = ['magazzino', 'alert', 'ordini', 'bacheca', 'produzione', 'catalogo'];
 
 const callbacks = {};
 
