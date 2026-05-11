@@ -30,6 +30,11 @@ export function initProdottoFinito(firestoreDb) {
 // stato apertura accordion annidato
 const statiAperti = { fornitori: new Set(), tipologie: new Set() };
 
+function apriGruppo(fornitore, tipologia) {
+  statiAperti.fornitori.add(fornitore);
+  statiAperti.tipologie.add(`${fornitore}__${tipologia}`);
+}
+
 // ─── Caricamento real-time ───────────────────────────────────────
 function carica() {
   const q = query(collection(db, "prodotti_finiti"), orderBy("nome"));
@@ -71,7 +76,9 @@ function render() {
   container.innerHTML = '';
   const hasTesto = testo.length > 0;
 
-  Object.keys(perFornitore).sort().forEach(fornitore => {
+  const sortIT = (a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' });
+
+  Object.keys(perFornitore).sort(sortIT).forEach(fornitore => {
     const tipologie = perFornitore[fornitore];
     const totale    = Object.values(tipologie).flat().length;
     const fornAperto = statiAperti.fornitori.has(fornitore) || hasTesto;
@@ -102,7 +109,7 @@ function render() {
     const body = document.createElement('div');
     body.className = 'pf-fornitore-body';
 
-    Object.keys(tipologie).sort().forEach(tipologia => {
+    Object.keys(tipologie).sort(sortIT).forEach(tipologia => {
       const chiaveTip  = `${fornitore}__${tipologia}`;
       const tipAperta  = statiAperti.tipologie.has(chiaveTip) || hasTesto;
       const colori     = tipologie[tipologia];
@@ -132,7 +139,7 @@ function render() {
       const tipBody = document.createElement('div');
       tipBody.className = 'pf-tipologia-body';
       colori
-        .sort((a, b) => (a.colore ?? '').localeCompare(b.colore ?? ''))
+        .sort((a, b) => (a.colore ?? '').localeCompare(b.colore ?? '', 'it', { sensitivity: 'base' }))
         .forEach(p => tipBody.appendChild(creaRigaColore(p)));
       group.appendChild(tipBody);
 
@@ -291,6 +298,7 @@ async function salva(e) {
     } else {
       await addDoc(collection(db, "prodotti_finiti"), dati);
     }
+    apriGruppo(dati.fornitore, dati.nome);
     closeModal('modal-prodotto-finito');
   } catch (err) {
     console.error("Errore salvataggio prodotto finito:", err);
