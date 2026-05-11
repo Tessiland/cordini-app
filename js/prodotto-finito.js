@@ -281,7 +281,6 @@ function apriModifica(id) {
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
   document.getElementById('pf-fornitore').value  = p.fornitore    ?? '';
   document.getElementById('pf-tipologia').value  = p.nome         ?? '';
-  document.getElementById('pf-colore').value     = p.colore       ?? '';
   document.getElementById('pf-ubicazione').value = p.ubicazione   ?? '';
   document.getElementById('pf-partita').value    = p.partita      ?? '';
   document.getElementById('pf-rocche').value     = p.quantitaRocche ?? 0;
