@@ -33,6 +33,15 @@ export function initProdottoFinito(firestoreDb) {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
     renderColoriComponentiForm();
   });
+
+  document.getElementById('pf-fornitore').addEventListener('input', e => {
+    impostaModalitaFornitore(e.target.value.trim() === 'STOCK');
+  });
+}
+
+function impostaModalitaFornitore(isStock) {
+  document.getElementById('pf-colore-stock-group').classList.toggle('hidden', !isStock);
+  document.getElementById('pf-colori-section').classList.toggle('hidden', isStock);
 }
 
 // stato apertura accordion annidato
@@ -171,13 +180,15 @@ function creaRigaColore(p) {
     ? `<span class="tag tag-warning" style="font-size:.6rem">ROCCATURA</span>`
     : '';
 
+  const isStock = p.fornitore === 'STOCK';
+
   const nomeColoreDisplay = p.coloriComponenti?.length === 1
     ? p.coloriComponenti[0].nomeColore
     : (p.colore || p.nome || '—');
 
   const mixHtml = p.coloriComponenti?.length > 1
     ? `<span class="pf-mix">${p.coloriComponenti.map(c => `${c.percentuale}% ${c.nomeColore}`).join(' · ')}</span>`
-    : (!p.coloriComponenti?.length && p.colore)
+    : (!isStock && !p.coloriComponenti?.length && p.colore)
       ? `<span class="pf-mix pf-mix-legacy">⚠ da rimappare</span>`
       : '';
 
@@ -267,6 +278,8 @@ function apriAggiungi() {
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
   document.getElementById('pf-colore-originale').classList.add('hidden');
+  document.getElementById('pf-colore-stock').value = '';
+  impostaModalitaFornitore(false);
   coloriComponentiForm = [{ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 100 }];
   renderColoriComponentiForm();
   aggiornaDatalists();
@@ -289,17 +302,25 @@ function apriModifica(id) {
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
   if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
-  const hintEl = document.getElementById('pf-colore-originale');
-  if (!p.coloriComponenti?.length && p.colore) {
-    hintEl.textContent = `Testo attuale: "${p.colore}"`;
-    hintEl.classList.remove('hidden');
+  const isStock = p.fornitore === 'STOCK';
+  impostaModalitaFornitore(isStock);
+  if (isStock) {
+    document.getElementById('pf-colore-stock').value = p.colore ?? '';
+    document.getElementById('pf-colore-originale').classList.add('hidden');
   } else {
-    hintEl.classList.add('hidden');
+    document.getElementById('pf-colore-stock').value = '';
+    const hintEl = document.getElementById('pf-colore-originale');
+    if (!p.coloriComponenti?.length && p.colore) {
+      hintEl.textContent = `Testo attuale: "${p.colore}"`;
+      hintEl.classList.remove('hidden');
+    } else {
+      hintEl.classList.add('hidden');
+    }
+    coloriComponentiForm = p.coloriComponenti?.length > 0
+      ? p.coloriComponenti.map(c => ({ ...c }))
+      : [{ idFornitore: p.fornitore ?? '', idProdotto: '', nomeColore: '', percentuale: 100 }];
+    renderColoriComponentiForm();
   }
-  coloriComponentiForm = p.coloriComponenti?.length > 0
-    ? p.coloriComponenti.map(c => ({ ...c }))
-    : [{ idFornitore: p.fornitore ?? '', idProdotto: '', nomeColore: '', percentuale: 100 }];
-  renderColoriComponentiForm();
   aggiornaDatalists();
   openModal('modal-prodotto-finito');
 }
@@ -312,32 +333,43 @@ async function salva(e) {
 
   errEl.textContent = '';
 
-  if (coloriComponentiForm.some(c => !c.idProdotto)) {
-    errEl.textContent = 'Seleziona la materia prima per ogni riga colore.';
-    return;
-  }
-  const tot = coloriComponentiForm.reduce((s, c) => s + (c.percentuale || 0), 0);
-  if (tot !== 100) {
-    errEl.textContent = `Le percentuali colore devono sommare 100% (attuale: ${tot}%).`;
-    return;
+  const fornitore = document.getElementById('pf-fornitore').value.trim();
+  const isStock   = fornitore === 'STOCK';
+
+  let coloreCalcolato;
+  let coloriDaSalvare;
+
+  if (isStock) {
+    coloreCalcolato  = document.getElementById('pf-colore-stock').value.trim() || '—';
+    coloriDaSalvare  = [];
+  } else {
+    if (coloriComponentiForm.some(c => !c.idProdotto)) {
+      errEl.textContent = 'Seleziona la materia prima per ogni riga colore.';
+      return;
+    }
+    const tot = coloriComponentiForm.reduce((s, c) => s + (c.percentuale || 0), 0);
+    if (tot !== 100) {
+      errEl.textContent = `Le percentuali colore devono sommare 100% (attuale: ${tot}%).`;
+      return;
+    }
+    coloreCalcolato = coloriComponentiForm.length === 1
+      ? coloriComponentiForm[0].nomeColore
+      : 'Multicolore';
+    coloriDaSalvare = coloriComponentiForm.map(c => ({
+      idProdotto:  c.idProdotto,
+      nomeColore:  c.nomeColore,
+      idFornitore: c.idFornitore,
+      percentuale: c.percentuale
+    }));
   }
 
   saveBtn.disabled = true;
 
-  const coloreCalcolato = coloriComponentiForm.length === 1
-    ? coloriComponentiForm[0].nomeColore
-    : 'Multicolore';
-
   const dati = {
-    fornitore:        document.getElementById('pf-fornitore').value.trim(),
+    fornitore,
     nome:             document.getElementById('pf-tipologia').value.trim(),
     colore:           coloreCalcolato,
-    coloriComponenti: coloriComponentiForm.map(c => ({
-                        idProdotto:  c.idProdotto,
-                        nomeColore:  c.nomeColore,
-                        idFornitore: c.idFornitore,
-                        percentuale: c.percentuale
-                      })),
+    coloriComponenti: coloriDaSalvare,
     ubicazione:       document.getElementById('pf-ubicazione').value.trim(),
     partita:          document.getElementById('pf-partita').value.trim(),
     quantitaRocche:   Number(document.getElementById('pf-rocche').value),
