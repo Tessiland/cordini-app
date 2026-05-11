@@ -7,6 +7,7 @@ import { initMagazzino, setOperatore } from './magazzino.js';
 import { initProdottoFinito, setOperatorePF } from './prodotto-finito.js';
 import { initCatalogo }                       from './catalogo.js';
 import { initOrdiniProduzione }               from './ordini-produzione.js';
+import { initOrdiniFornitori }               from './ordini-fornitori.js';
 
 async function main() {
   let firebase;
@@ -39,6 +40,7 @@ async function main() {
     initProdottoFinito(db);
     try { initCatalogo(db, user.email); } catch (e) { console.error('initCatalogo:', e); }
     try { initOrdiniProduzione(db, user.email); } catch (e) { console.error('initOrdiniProduzione:', e); }
+    try { initOrdiniFornitori(db); } catch (e) { console.error('initOrdiniFornitori:', e); }
   });
 }
 

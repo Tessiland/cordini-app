@@ -108,17 +108,27 @@
       <!-- ========== ORDINI ========== -->
       <section id="view-ordini" class="view hidden">
         <div class="view-header">
-          <h2>Ordini</h2>
+          <h2>Ordini Fornitori</h2>
         </div>
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="proposte">Proposte</button>
           <button class="tab-btn" data-tab="storico">Storico</button>
         </div>
+
+        <!-- TAB Proposte -->
         <div id="tab-proposte" class="tab-content active">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+            <p style="font-size:.8rem;color:var(--text-secondary)">Prodotti sotto soglia non ancora ordinati, raggruppati per fornitore.</p>
+            <button id="aggiorna-proposte-btn" class="btn-ghost btn-sm">
+              <i class="fas fa-arrows-rotate"></i> Aggiorna
+            </button>
+          </div>
           <div id="list-proposte">
-            <p class="empty-state">Nessun prodotto da ordinare.</p>
+            <p class="empty-state">Caricamento…</p>
           </div>
         </div>
+
+        <!-- TAB Storico -->
         <div id="tab-storico" class="tab-content">
           <div id="list-storico">
             <p class="empty-state">Nessun ordine attivo.</p>
@@ -459,6 +469,30 @@
           <button type="submit" class="btn-primary">Crea Alert</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL — TESTO EMAIL ORDINE ===================== -->
+  <div id="modal-email" class="modal-overlay hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 class="modal-title">Testo per la mail</h3>
+        <button class="btn-icon modal-close" data-modal="modal-email">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.625rem">
+        Copia il testo e incollalo nel corpo della mail al fornitore.
+      </p>
+      <textarea id="email-testo" rows="12"
+        style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem;font-family:var(--font);font-size:.85rem;resize:vertical;line-height:1.6"
+        readonly></textarea>
+      <div class="modal-actions" style="margin-top:.75rem">
+        <button type="button" class="btn-secondary modal-close" data-modal="modal-email">Chiudi</button>
+        <button type="button" id="copy-email-btn" class="btn-primary">
+          <i class="fas fa-copy"></i> Copia testo
+        </button>
+      </div>
     </div>
   </div>
 
