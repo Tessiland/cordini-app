@@ -189,10 +189,10 @@ function creaRigaColore(p) {
     <div class="pf-color-info">
       <div class="pf-color-name">${nomeColoreDisplay} ${tipoBadge}</div>
       ${mixHtml}
+      ${p.ubicazione ? `<div class="pf-ubicazione"><i class="fas fa-location-dot"></i> ${p.ubicazione}</div>` : ''}
       <div class="pf-color-sub">
-        ${p.ubicazione ? `<span><i class="fas fa-location-dot"></i> ${p.ubicazione}</span>` : ''}
-        ${p.partita    ? `<span>· ${p.partita}</span>` : ''}
-        ${p.sku        ? `<span>· ${p.sku}</span>` : ''}
+        ${p.partita ? `<span>${p.partita}</span>` : ''}
+        ${p.sku     ? `<span>· ${p.sku}</span>` : ''}
       </div>
     </div>
     <div>
@@ -266,6 +266,7 @@ function apriAggiungi() {
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
+  document.getElementById('pf-colore-originale').classList.add('hidden');
   coloriComponentiForm = [{ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 100 }];
   renderColoriComponentiForm();
   aggiornaDatalists();
@@ -288,6 +289,13 @@ function apriModifica(id) {
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
   if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
+  const hintEl = document.getElementById('pf-colore-originale');
+  if (!p.coloriComponenti?.length && p.colore) {
+    hintEl.textContent = `Testo attuale: "${p.colore}"`;
+    hintEl.classList.remove('hidden');
+  } else {
+    hintEl.classList.add('hidden');
+  }
   coloriComponentiForm = p.coloriComponenti?.length > 0
     ? p.coloriComponenti.map(c => ({ ...c }))
     : [{ idFornitore: p.fornitore ?? '', idProdotto: '', nomeColore: '', percentuale: 100 }];
