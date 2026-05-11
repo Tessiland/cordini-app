@@ -29,16 +29,6 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
 
-  document.getElementById('pf-multicolore').addEventListener('change', e => {
-    const multi = e.target.checked;
-    document.getElementById('pf-colore-group').classList.toggle('hidden', multi);
-    document.getElementById('multicolore-section').classList.toggle('hidden', !multi);
-    if (multi && coloriComponentiForm.length === 0) {
-      coloriComponentiForm = [{ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 }];
-      renderColoriComponentiForm();
-    }
-  });
-
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
     renderColoriComponentiForm();
@@ -181,9 +171,15 @@ function creaRigaColore(p) {
     ? `<span class="tag tag-warning" style="font-size:.6rem">ROCCATURA</span>`
     : '';
 
-  const mixHtml = p.coloriComponenti?.length > 0
+  const nomeColoreDisplay = p.coloriComponenti?.length === 1
+    ? p.coloriComponenti[0].nomeColore
+    : (p.colore || p.nome || '—');
+
+  const mixHtml = p.coloriComponenti?.length > 1
     ? `<span class="pf-mix">${p.coloriComponenti.map(c => `${c.percentuale}% ${c.nomeColore}`).join(' · ')}</span>`
-    : '';
+    : (!p.coloriComponenti?.length && p.colore)
+      ? `<span class="pf-mix pf-mix-legacy">⚠ da rimappare</span>`
+      : '';
 
   const row = document.createElement('div');
   row.className = 'pf-color-row';
@@ -191,7 +187,7 @@ function creaRigaColore(p) {
 
   row.innerHTML = `
     <div class="pf-color-info">
-      <div class="pf-color-name">${p.colore || p.nome || '—'} ${tipoBadge}</div>
+      <div class="pf-color-name">${nomeColoreDisplay} ${tipoBadge}</div>
       ${mixHtml}
       <div class="pf-color-sub">
         ${p.ubicazione ? `<span><i class="fas fa-location-dot"></i> ${p.ubicazione}</span>` : ''}
@@ -270,10 +266,8 @@ function apriAggiungi() {
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
-  document.getElementById('pf-multicolore').checked = false;
-  document.getElementById('pf-colore-group').classList.remove('hidden');
-  document.getElementById('multicolore-section').classList.add('hidden');
-  coloriComponentiForm = [];
+  coloriComponentiForm = [{ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 100 }];
+  renderColoriComponentiForm();
   aggiornaDatalists();
   openModal('modal-prodotto-finito');
 }
@@ -295,12 +289,10 @@ function apriModifica(id) {
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
   if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
-  const isMulti = (p.coloriComponenti?.length > 0);
-  document.getElementById('pf-multicolore').checked = isMulti;
-  document.getElementById('pf-colore-group').classList.toggle('hidden', isMulti);
-  document.getElementById('multicolore-section').classList.toggle('hidden', !isMulti);
-  coloriComponentiForm = isMulti ? p.coloriComponenti.map(c => ({ ...c })) : [];
-  if (isMulti) renderColoriComponentiForm();
+  coloriComponentiForm = p.coloriComponenti?.length > 0
+    ? p.coloriComponenti.map(c => ({ ...c }))
+    : [{ idFornitore: p.fornitore ?? '', idProdotto: '', nomeColore: '', percentuale: 100 }];
+  renderColoriComponentiForm();
   aggiornaDatalists();
   openModal('modal-prodotto-finito');
 }
@@ -313,41 +305,37 @@ async function salva(e) {
 
   errEl.textContent = '';
 
-  const isMulti = document.getElementById('pf-multicolore').checked;
-  if (isMulti) {
-    const tot = coloriComponentiForm.reduce((s, c) => s + (c.percentuale || 0), 0);
-    if (tot !== 100) {
-      errEl.textContent = `La composizione colori deve sommare 100% (attuale: ${tot}%).`;
-      return;
-    }
-    if (coloriComponentiForm.some(c => !c.idProdotto)) {
-      errEl.textContent = 'Seleziona la materia prima per ogni colore componente.';
-      return;
-    }
-  } else {
-    if (!document.getElementById('pf-colore').value.trim()) {
-      errEl.textContent = 'Inserisci il colore.';
-      return;
-    }
+  if (coloriComponentiForm.some(c => !c.idProdotto)) {
+    errEl.textContent = 'Seleziona la materia prima per ogni riga colore.';
+    return;
+  }
+  const tot = coloriComponentiForm.reduce((s, c) => s + (c.percentuale || 0), 0);
+  if (tot !== 100) {
+    errEl.textContent = `Le percentuali colore devono sommare 100% (attuale: ${tot}%).`;
+    return;
   }
 
   saveBtn.disabled = true;
 
+  const coloreCalcolato = coloriComponentiForm.length === 1
+    ? coloriComponentiForm[0].nomeColore
+    : 'Multicolore';
+
   const dati = {
-    fornitore:         document.getElementById('pf-fornitore').value.trim(),
-    nome:              document.getElementById('pf-tipologia').value.trim(),
-    colore:            isMulti ? 'Multicolore' : document.getElementById('pf-colore').value.trim(),
-    coloriComponenti:  isMulti ? coloriComponentiForm.map(c => ({
-                         idProdotto:  c.idProdotto,
-                         nomeColore:  c.nomeColore,
-                         idFornitore: c.idFornitore,
-                         percentuale: c.percentuale
-                       })) : [],
-    ubicazione:        document.getElementById('pf-ubicazione').value.trim(),
-    partita:           document.getElementById('pf-partita').value.trim(),
-    quantitaRocche:    Number(document.getElementById('pf-rocche').value),
-    sogliaAvviso:      Number(document.getElementById('pf-soglia').value),
-    tipoLavorazione:   document.querySelector('input[name="pf-lavorazione"]:checked').value
+    fornitore:        document.getElementById('pf-fornitore').value.trim(),
+    nome:             document.getElementById('pf-tipologia').value.trim(),
+    colore:           coloreCalcolato,
+    coloriComponenti: coloriComponentiForm.map(c => ({
+                        idProdotto:  c.idProdotto,
+                        nomeColore:  c.nomeColore,
+                        idFornitore: c.idFornitore,
+                        percentuale: c.percentuale
+                      })),
+    ubicazione:       document.getElementById('pf-ubicazione').value.trim(),
+    partita:          document.getElementById('pf-partita').value.trim(),
+    quantitaRocche:   Number(document.getElementById('pf-rocche').value),
+    sogliaAvviso:     Number(document.getElementById('pf-soglia').value),
+    tipoLavorazione:  document.querySelector('input[name="pf-lavorazione"]:checked').value
   };
 
   try {
