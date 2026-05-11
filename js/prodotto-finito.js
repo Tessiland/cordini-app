@@ -251,13 +251,15 @@ function apriModifica(id) {
   form.dataset.mode = 'edit';
   form.dataset.id   = id;
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
-  document.getElementById('pf-fornitore').value   = p.fornitore    ?? '';
-  document.getElementById('pf-tipologia').value   = p.nome         ?? '';
-  document.getElementById('pf-colore').value      = p.colore       ?? '';
-  document.getElementById('pf-ubicazione').value  = p.ubicazione   ?? '';
-  document.getElementById('pf-partita').value     = p.partita      ?? '';
-  document.getElementById('pf-rocche').value      = p.quantitaRocche ?? 0;
-  document.getElementById('pf-soglia').value      = p.sogliaAvviso ?? 0;
+  document.getElementById('pf-fornitore').value  = p.fornitore    ?? '';
+  document.getElementById('pf-tipologia').value  = p.nome         ?? '';
+  document.getElementById('pf-colore').value     = p.colore       ?? '';
+  document.getElementById('pf-ubicazione').value = p.ubicazione   ?? '';
+  document.getElementById('pf-partita').value    = p.partita      ?? '';
+  document.getElementById('pf-rocche').value     = p.quantitaRocche ?? 0;
+  document.getElementById('pf-soglia').value     = p.sogliaAvviso ?? 0;
+  const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
+  if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
   aggiornaDatalists();
   openModal('modal-prodotto-finito');
@@ -273,13 +275,14 @@ async function salva(e) {
   saveBtn.disabled  = true;
 
   const dati = {
-    fornitore:      document.getElementById('pf-fornitore').value.trim(),
-    nome:           document.getElementById('pf-tipologia').value.trim(),
-    colore:         document.getElementById('pf-colore').value.trim(),
-    ubicazione:     document.getElementById('pf-ubicazione').value.trim(),
-    partita:        document.getElementById('pf-partita').value.trim(),
-    quantitaRocche: Number(document.getElementById('pf-rocche').value),
-    sogliaAvviso:   Number(document.getElementById('pf-soglia').value)
+    fornitore:       document.getElementById('pf-fornitore').value.trim(),
+    nome:            document.getElementById('pf-tipologia').value.trim(),
+    colore:          document.getElementById('pf-colore').value.trim(),
+    ubicazione:      document.getElementById('pf-ubicazione').value.trim(),
+    partita:         document.getElementById('pf-partita').value.trim(),
+    quantitaRocche:  Number(document.getElementById('pf-rocche').value),
+    sogliaAvviso:    Number(document.getElementById('pf-soglia').value),
+    tipoLavorazione: document.querySelector('input[name="pf-lavorazione"]:checked').value
   };
 
   try {
