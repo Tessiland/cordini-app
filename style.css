@@ -1684,7 +1684,7 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 .ordine-items-header,
 .ordine-item-row {
   display: grid;
-  grid-template-columns: 1fr 4.5rem 5rem 3rem;
+  grid-template-columns: 1fr 4rem 4.5rem 6.5rem;
   align-items: center;
   gap: .5rem;
   padding: .5rem .5rem;
@@ -1718,6 +1718,15 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   font-size: .7rem;
   color: var(--text-muted);
   margin-top: .1rem;
+}
+.ordine-item-ubicazione {
+  font-size: .68rem;
+  color: var(--accent);
+  margin-top: .15rem;
+}
+.ordine-item-ubicazione .fa-location-dot {
+  font-size: .6rem;
+  margin-right: .15rem;
 }
 
 .col-richiesta, .col-disponibile, .col-azione {

@@ -140,11 +140,16 @@ function creaRigaItemHtml(item, origIdx, ordineId) {
       </button>`;
   }
 
+  const ubicazione = (!item.spuntato && pfItem && stockAttuale > 0)
+    ? (pfItem.ubicazione?.trim() || 'non ubicato')
+    : null;
+
   return `
     <div class="ordine-item-row${item.spuntato ? ' spuntato' : ''}">
       <div class="col-nome">
         <div class="ordine-item-nome">${item.nome ?? '—'}</div>
         <div class="ordine-item-sku">${item.sku ?? ''}</div>
+        ${ubicazione ? `<div class="ordine-item-ubicazione"><i class="fas fa-location-dot"></i> ${ubicazione}</div>` : ''}
       </div>
       <div class="col-richiesta">${item.qtyRichiesta}</div>
       <div class="col-disponibile ${colStock}">${stockHtml}</div>
