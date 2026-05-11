@@ -178,6 +178,23 @@
         <div class="filter-row">
           <input type="text" id="search-catalogo" class="input-search" placeholder="Cerca per nome o SKU…">
         </div>
+
+        <!-- Import Excel — solo admin -->
+        <div id="import-card" class="upload-card admin-only hidden">
+          <h3>Importa Prodotti da Excel</h3>
+          <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.875rem">
+            Seleziona il file .xlsx — i dati vengono scritti nel Magazzino Prodotto Finito.
+          </p>
+          <div class="field-group">
+            <label for="import-file">File Excel (.xlsx)</label>
+            <input type="file" id="import-file" accept=".xlsx,.xls">
+          </div>
+          <button id="import-btn" class="btn-primary">
+            <i class="fas fa-file-import"></i> Avvia Import
+          </button>
+          <p id="import-status" style="font-size:.8rem;margin-top:.625rem;min-height:1.2em"></p>
+        </div>
+
         <div id="list-catalogo" class="catalogo-list">
           <p class="empty-state">Nessun prodotto in catalogo.</p>
         </div>

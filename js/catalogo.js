@@ -1,6 +1,6 @@
 import {
   collection, query, orderBy, onSnapshot, doc,
-  addDoc, updateDoc, deleteDoc
+  addDoc, updateDoc, deleteDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
 import { getProdotti } from './magazzino.js';
@@ -25,6 +25,7 @@ export function initCatalogo(firestoreDb, userEmail) {
 
   document.getElementById('search-catalogo').addEventListener('input', render);
   document.getElementById('add-anagrafica-btn').addEventListener('click', apriAggiungi);
+  document.getElementById('import-btn').addEventListener('click', avviaImport);
   document.getElementById('list-catalogo').addEventListener('click', gestisciClick);
   document.getElementById('add-componente-btn').addEventListener('click', () => {
     componentiForm.push({ idProdotto: '', nomeProdotto: '', percentuale: 0 });
@@ -259,4 +260,113 @@ async function elimina(id, nome) {
   if (!confirm(`Eliminare "${nome}" dal catalogo?`)) return;
   try { await deleteDoc(doc(db, "anagrafica", id)); }
   catch (err) { console.error("Errore eliminazione:", err); }
+}
+
+// ─── Import Excel → prodotti_finiti ──────────────────────────────
+function parseDescrizione(desc) {
+  const m = desc.match(/^(.+?)\s+(Grammi|Gr)\s+(\d+)/i);
+  let before, pesoFormato;
+  if (m) {
+    before      = m[1].trim();
+    pesoFormato = Number(m[3]);
+  } else {
+    before      = desc.trim();
+    pesoFormato = null;
+  }
+  const words  = before.split(' ').filter(w => w);
+  const colore = words.length > 1 ? words[words.length - 1] : '';
+  const nome   = words.length > 1 ? words.slice(0, -1).join(' ') : before;
+  return { nome, colore, pesoFormato };
+}
+
+function getTipoLavorazione(fornitore) {
+  return fornitore.trim() === 'Cofil S.R.L.' ? 'raccatura' : 'cordini';
+}
+
+async function avviaImport() {
+  const fileInput  = document.getElementById('import-file');
+  const statusEl   = document.getElementById('import-status');
+  const btn        = document.getElementById('import-btn');
+
+  if (!fileInput.files[0]) {
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = 'Seleziona un file Excel prima di procedere.';
+    return;
+  }
+
+  if (!confirm('Stai per importare i prodotti nel Magazzino Prodotto Finito. Continuare?')) return;
+
+  btn.disabled = true;
+  statusEl.style.color = 'var(--text-secondary)';
+  statusEl.textContent = 'Lettura file in corso…';
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data     = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet    = workbook.Sheets[workbook.SheetNames[0]];
+      const rows     = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      // Riga 0 = intestazioni, dati da riga 1 in poi
+      // Colonne: 0=vuoto, 1=No, 2=Cod, 3=Descrizione, 4=Libero4, 5=Qtà, 6=Fornitore, 7=Ubicazione, 8=Note
+      const records = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row[3]) continue; // skip righe vuote
+
+        const sku         = String(row[2] ?? '').trim();
+        const descrizione = String(row[3] ?? '').trim();
+        const partita     = String(row[4] ?? '').trim() || 'NP';
+        const quantita    = Number(row[5]) || 0;
+        const fornitore   = String(row[6] ?? '').trim();
+        const ubicazione  = String(row[7] ?? '').trim();
+        const note        = String(row[8] ?? '').trim();
+
+        if (!descrizione) continue;
+
+        const { nome, colore, pesoFormato } = parseDescrizione(descrizione);
+
+        records.push({
+          sku,
+          nome,
+          colore,
+          pesoFormato,
+          partita,
+          quantitaRocche: quantita,
+          fornitore,
+          ubicazione,
+          note,
+          tipoLavorazione: getTipoLavorazione(fornitore),
+          sogliaAvviso: 0
+        });
+      }
+
+      statusEl.textContent = `Trovati ${records.length} prodotti. Scrittura su Firestore…`;
+
+      // Firestore writeBatch (max 500 per batch)
+      const BATCH_SIZE = 490;
+      let scritti = 0;
+      for (let start = 0; start < records.length; start += BATCH_SIZE) {
+        const batch = writeBatch(db);
+        records.slice(start, start + BATCH_SIZE).forEach(r => {
+          batch.set(doc(collection(db, "prodotti_finiti")), r);
+        });
+        await batch.commit();
+        scritti += Math.min(BATCH_SIZE, records.length - start);
+        statusEl.textContent = `Scritti ${scritti}/${records.length}…`;
+      }
+
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = `✓ Import completato: ${records.length} prodotti importati.`;
+      fileInput.value = '';
+    } catch (err) {
+      console.error("Errore import:", err);
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = 'Errore durante l\'import. Controlla la console.';
+    } finally {
+      btn.disabled = false;
+    }
+  };
+  reader.readAsArrayBuffer(fileInput.files[0]);
 }

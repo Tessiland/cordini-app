@@ -155,14 +155,22 @@ function creaRigaColore(p) {
   if (rocche <= soglia && rocche > 0) stockClass = 'warning';
   if (rocche === 0)                   stockClass = 'danger';
 
+  const tipoBadge = p.tipoLavorazione === 'raccatura'
+    ? `<span class="tag tag-warning" style="font-size:.6rem">RACCATURA</span>`
+    : '';
+
   const row = document.createElement('div');
   row.className = 'pf-color-row';
   row.dataset.id = p.id;
 
   row.innerHTML = `
     <div class="pf-color-info">
-      <div class="pf-color-name">${p.colore ?? '—'}</div>
-      ${p.partita ? `<div class="pf-color-sub">Partita: ${p.partita}</div>` : ''}
+      <div class="pf-color-name">${p.colore || p.nome || '—'} ${tipoBadge}</div>
+      <div class="pf-color-sub">
+        ${p.ubicazione ? `<span><i class="fas fa-location-dot"></i> ${p.ubicazione}</span>` : ''}
+        ${p.partita    ? `<span>· ${p.partita}</span>` : ''}
+        ${p.sku        ? `<span>· ${p.sku}</span>` : ''}
+      </div>
     </div>
     <div>
       <div class="pf-color-stock ${stockClass}">${rocche}</div>
