@@ -368,11 +368,25 @@
                  placeholder="Es. Thai Sublime, Fettuccia Pandoro Queen…" required autocomplete="off">
           <datalist id="tipologie-datalist"></datalist>
         </div>
-        <div class="field-group">
+        <div class="field-group" id="pf-colore-group">
           <label for="pf-colore">Colore</label>
           <input type="text" id="pf-colore" list="colori-datalist"
-                 placeholder="Es. Becco Oca, Naturale, Rosso…" required autocomplete="off">
+                 placeholder="Es. Becco Oca, Naturale, Rosso…" autocomplete="off">
           <datalist id="colori-datalist"></datalist>
+        </div>
+        <div class="field-group pf-multicolore-toggle">
+          <input type="checkbox" id="pf-multicolore">
+          <label for="pf-multicolore">Multicolore</label>
+        </div>
+        <div id="multicolore-section" class="componenti-section hidden">
+          <div class="componenti-header">
+            <span class="componenti-label">Colori componenti</span>
+            <span id="pf-perc-totale-colori" class="perc-totale">0%</span>
+          </div>
+          <div id="colori-list" class="componenti-list"></div>
+          <button type="button" id="add-colore-btn" class="btn-ghost" style="margin-top:.5rem">
+            <i class="fas fa-plus"></i> Aggiungi colore
+          </button>
         </div>
         <div class="field-group">
           <label for="pf-ubicazione">Ubicazione</label>

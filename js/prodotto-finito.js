@@ -4,10 +4,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
 import { aggiornaDatalists } from './tipologie.js';
+import { getProdotti } from './magazzino.js';
+import { getFornitori } from './fornitori.js';
 
 let db;
 let operatoreCorrente = 'Operatori';
 let tuttiProdottiFiniti = [];
+let coloriComponentiForm = [];
 
 export function setOperatorePF(email) {
   operatoreCorrente = email || 'Operatori';
@@ -25,6 +28,21 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
+
+  document.getElementById('pf-multicolore').addEventListener('change', e => {
+    const multi = e.target.checked;
+    document.getElementById('pf-colore-group').classList.toggle('hidden', multi);
+    document.getElementById('multicolore-section').classList.toggle('hidden', !multi);
+    if (multi && coloriComponentiForm.length === 0) {
+      coloriComponentiForm = [{ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 }];
+      renderColoriComponentiForm();
+    }
+  });
+
+  document.getElementById('add-colore-btn').addEventListener('click', () => {
+    coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
+    renderColoriComponentiForm();
+  });
 }
 
 // stato apertura accordion annidato
@@ -163,6 +181,10 @@ function creaRigaColore(p) {
     ? `<span class="tag tag-warning" style="font-size:.6rem">ROCCATURA</span>`
     : '';
 
+  const mixHtml = p.coloriComponenti?.length > 0
+    ? `<span class="pf-mix">${p.coloriComponenti.map(c => `${c.percentuale}% ${c.nomeColore}`).join(' · ')}</span>`
+    : '';
+
   const row = document.createElement('div');
   row.className = 'pf-color-row';
   row.dataset.id = p.id;
@@ -170,6 +192,7 @@ function creaRigaColore(p) {
   row.innerHTML = `
     <div class="pf-color-info">
       <div class="pf-color-name">${p.colore || p.nome || '—'} ${tipoBadge}</div>
+      ${mixHtml}
       <div class="pf-color-sub">
         ${p.ubicazione ? `<span><i class="fas fa-location-dot"></i> ${p.ubicazione}</span>` : ''}
         ${p.partita    ? `<span>· ${p.partita}</span>` : ''}
@@ -247,6 +270,10 @@ function apriAggiungi() {
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
+  document.getElementById('pf-multicolore').checked = false;
+  document.getElementById('pf-colore-group').classList.remove('hidden');
+  document.getElementById('multicolore-section').classList.add('hidden');
+  coloriComponentiForm = [];
   aggiornaDatalists();
   openModal('modal-prodotto-finito');
 }
@@ -268,6 +295,12 @@ function apriModifica(id) {
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
   if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
+  const isMulti = (p.coloriComponenti?.length > 0);
+  document.getElementById('pf-multicolore').checked = isMulti;
+  document.getElementById('pf-colore-group').classList.toggle('hidden', isMulti);
+  document.getElementById('multicolore-section').classList.toggle('hidden', !isMulti);
+  coloriComponentiForm = isMulti ? p.coloriComponenti.map(c => ({ ...c })) : [];
+  if (isMulti) renderColoriComponentiForm();
   aggiornaDatalists();
   openModal('modal-prodotto-finito');
 }
@@ -279,17 +312,42 @@ async function salva(e) {
   const saveBtn = form.querySelector('[type="submit"]');
 
   errEl.textContent = '';
-  saveBtn.disabled  = true;
+
+  const isMulti = document.getElementById('pf-multicolore').checked;
+  if (isMulti) {
+    const tot = coloriComponentiForm.reduce((s, c) => s + (c.percentuale || 0), 0);
+    if (tot !== 100) {
+      errEl.textContent = `La composizione colori deve sommare 100% (attuale: ${tot}%).`;
+      return;
+    }
+    if (coloriComponentiForm.some(c => !c.idProdotto)) {
+      errEl.textContent = 'Seleziona la materia prima per ogni colore componente.';
+      return;
+    }
+  } else {
+    if (!document.getElementById('pf-colore').value.trim()) {
+      errEl.textContent = 'Inserisci il colore.';
+      return;
+    }
+  }
+
+  saveBtn.disabled = true;
 
   const dati = {
-    fornitore:       document.getElementById('pf-fornitore').value.trim(),
-    nome:            document.getElementById('pf-tipologia').value.trim(),
-    colore:          document.getElementById('pf-colore').value.trim(),
-    ubicazione:      document.getElementById('pf-ubicazione').value.trim(),
-    partita:         document.getElementById('pf-partita').value.trim(),
-    quantitaRocche:  Number(document.getElementById('pf-rocche').value),
-    sogliaAvviso:    Number(document.getElementById('pf-soglia').value),
-    tipoLavorazione: document.querySelector('input[name="pf-lavorazione"]:checked').value
+    fornitore:         document.getElementById('pf-fornitore').value.trim(),
+    nome:              document.getElementById('pf-tipologia').value.trim(),
+    colore:            isMulti ? 'Multicolore' : document.getElementById('pf-colore').value.trim(),
+    coloriComponenti:  isMulti ? coloriComponentiForm.map(c => ({
+                         idProdotto:  c.idProdotto,
+                         nomeColore:  c.nomeColore,
+                         idFornitore: c.idFornitore,
+                         percentuale: c.percentuale
+                       })) : [],
+    ubicazione:        document.getElementById('pf-ubicazione').value.trim(),
+    partita:           document.getElementById('pf-partita').value.trim(),
+    quantitaRocche:    Number(document.getElementById('pf-rocche').value),
+    sogliaAvviso:      Number(document.getElementById('pf-soglia').value),
+    tipoLavorazione:   document.querySelector('input[name="pf-lavorazione"]:checked').value
   };
 
   try {
@@ -306,6 +364,88 @@ async function salva(e) {
   } finally {
     saveBtn.disabled = false;
   }
+}
+
+// ─── Colori componenti (multicolore) ────────────────────────────
+function renderColoriComponentiForm() {
+  const container = document.getElementById('colori-list');
+  const prodotti  = getProdotti().sort((a, b) => a.nome.localeCompare(b.nome));
+  const fornitori = getFornitori();
+
+  container.innerHTML = '';
+
+  coloriComponentiForm.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'colore-form-row';
+
+    const opzFornitori = fornitori.map(f =>
+      `<option value="${f.nome}" ${f.nome === c.idFornitore ? 'selected' : ''}>${f.nome}</option>`
+    ).join('');
+
+    const filtrati = c.idFornitore
+      ? prodotti.filter(p => p.idFornitore === c.idFornitore)
+      : prodotti;
+
+    const opzProdotti = filtrati.map(p =>
+      `<option value="${p.id}" data-nome="${p.nome}" ${p.id === c.idProdotto ? 'selected' : ''}>${p.nome}</option>`
+    ).join('');
+
+    row.innerHTML = `
+      <div class="colore-form-selects">
+        <select class="colore-forn-sel" data-index="${i}">
+          <option value="">— Fornitore —</option>
+          ${opzFornitori}
+        </select>
+        <select class="colore-prod-sel" data-index="${i}">
+          <option value="">— Colore materia prima —</option>
+          ${opzProdotti}
+        </select>
+      </div>
+      <div class="colore-form-right">
+        <input type="number" class="colore-perc-inp" data-index="${i}"
+               value="${c.percentuale}" min="0" max="100" step="1">
+        <span class="perc-symbol">%</span>
+        <button type="button" class="btn-icon action-btn-del colore-rm-btn" data-index="${i}" title="Rimuovi">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+    `;
+
+    row.querySelector('.colore-forn-sel').addEventListener('change', e => {
+      coloriComponentiForm[i].idFornitore = e.target.value;
+      coloriComponentiForm[i].idProdotto  = '';
+      coloriComponentiForm[i].nomeColore  = '';
+      renderColoriComponentiForm();
+    });
+
+    row.querySelector('.colore-prod-sel').addEventListener('change', e => {
+      const opt = e.target.selectedOptions[0];
+      coloriComponentiForm[i].idProdotto = e.target.value;
+      coloriComponentiForm[i].nomeColore = opt?.dataset.nome ?? '';
+      aggiornaTotalePercColori();
+    });
+
+    row.querySelector('.colore-perc-inp').addEventListener('input', e => {
+      coloriComponentiForm[i].percentuale = Number(e.target.value) || 0;
+      aggiornaTotalePercColori();
+    });
+
+    row.querySelector('.colore-rm-btn').addEventListener('click', () => {
+      coloriComponentiForm.splice(i, 1);
+      renderColoriComponentiForm();
+    });
+
+    container.appendChild(row);
+  });
+
+  aggiornaTotalePercColori();
+}
+
+function aggiornaTotalePercColori() {
+  const tot = coloriComponentiForm.reduce((s, c) => s + (c.percentuale || 0), 0);
+  const el  = document.getElementById('pf-perc-totale-colori');
+  el.textContent = `${tot}%`;
+  el.className   = `perc-totale${tot === 100 ? ' ok' : tot > 100 ? ' errore' : ''}`;
 }
 
 async function elimina(id, nome) {
