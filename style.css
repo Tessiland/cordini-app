@@ -1286,14 +1286,25 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   margin-bottom: 0.5rem;
 }
 
-/* Ubicazione prominente nella card */
-.pf-ubicazione {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--accent);
-  margin-top: 0.2rem;
-  letter-spacing: 0.01em;
+/* Meta chips nella card (ubicazione, partita, sku) */
+.pf-color-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
 }
+.pf-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+.pf-meta-location { background: rgba(56,189,248,.12); color: var(--accent); }
+.pf-meta-partita  { background: rgba(168,85,247,.12);  color: #a855f7; }
+.pf-meta-sku      { background: rgba(34,197,94,.12);   color: #22c55e; }
 
 /* Multicolore — breakdown nella riga prodotto */
 .pf-mix {

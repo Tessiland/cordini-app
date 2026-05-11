@@ -189,10 +189,10 @@ function creaRigaColore(p) {
     <div class="pf-color-info">
       <div class="pf-color-name">${nomeColoreDisplay} ${tipoBadge}</div>
       ${mixHtml}
-      ${p.ubicazione ? `<div class="pf-ubicazione"><i class="fas fa-location-dot"></i> ${p.ubicazione}</div>` : ''}
-      <div class="pf-color-sub">
-        ${p.partita ? `<span>${p.partita}</span>` : ''}
-        ${p.sku     ? `<span>· ${p.sku}</span>` : ''}
+      <div class="pf-color-meta">
+        ${p.ubicazione ? `<span class="pf-meta-chip pf-meta-location"><i class="fas fa-location-dot"></i> ${p.ubicazione}</span>` : ''}
+        ${p.partita    ? `<span class="pf-meta-chip pf-meta-partita"><i class="fas fa-tag"></i> ${p.partita}</span>` : ''}
+        ${p.sku        ? `<span class="pf-meta-chip pf-meta-sku"><i class="fas fa-barcode"></i> ${p.sku}</span>` : ''}
       </div>
     </div>
     <div>
