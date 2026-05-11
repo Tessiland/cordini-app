@@ -1605,3 +1605,259 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ================================================================
+   ORDINI PRODUZIONE
+================================================================ */
+
+.ordine-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: .75rem;
+  overflow: hidden;
+}
+
+.ordine-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .875rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  gap: .75rem;
+}
+.ordine-card-header:hover { background: var(--bg-elevated); }
+
+.ordine-header-main { flex: 1; min-width: 0; }
+.ordine-numero { font-weight: 600; font-size: .9rem; color: var(--text-primary); }
+.ordine-meta   { font-size: .75rem; color: var(--text-secondary); margin-top: .125rem; }
+
+.ordine-header-right {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-shrink: 0;
+}
+
+.ordine-progress {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ordine-chevron {
+  color: var(--text-muted);
+  font-size: .8rem;
+  transition: transform var(--ease);
+}
+.ordine-chevron.open { transform: rotate(90deg); }
+
+/* Stato badge */
+.badge-stato {
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: .15rem .45rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.badge-stato.aperto  { background: var(--accent-dim);   color: var(--accent);   }
+.badge-stato.chiuso  { background: var(--success-dim);  color: var(--success);  }
+
+/* Body espandibile */
+.ordine-body { border-top: 1px solid var(--border-soft); }
+.ordine-body.hidden { display: none; }
+
+.ordine-actions-bar {
+  display: flex;
+  gap: .5rem;
+  padding: .625rem .875rem;
+  border-bottom: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+
+/* Griglia items */
+.ordine-items { padding: 0 .5rem .5rem; }
+
+.ordine-items-header,
+.ordine-item-row {
+  display: grid;
+  grid-template-columns: 1fr 4.5rem 5rem 3rem;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .5rem;
+}
+
+.ordine-items-header {
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: .4rem;
+  margin-bottom: .25rem;
+}
+
+.ordine-item-row {
+  border-radius: var(--radius-sm);
+  transition: background var(--ease);
+}
+.ordine-item-row:hover { background: var(--bg-elevated); }
+.ordine-item-row.spuntato { opacity: .55; }
+
+.ordine-item-nome {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.ordine-item-sku {
+  font-size: .7rem;
+  color: var(--text-muted);
+  margin-top: .1rem;
+}
+
+.col-richiesta, .col-disponibile, .col-azione {
+  text-align: center;
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+/* Colori disponibilità */
+.col-ok      { color: var(--success); }
+.col-warning { color: var(--warning); }
+.col-danger  { color: var(--danger);  }
+.stock-na    { color: var(--text-muted); font-size: .75rem; }
+
+/* Check fatto */
+.ordine-check-done { color: var(--success); font-size: 1.1rem; }
+
+/* Badges */
+.badge-parziale {
+  font-size: .6rem;
+  font-weight: 700;
+  background: var(--warning-dim);
+  color: var(--warning);
+  padding: .1rem .35rem;
+  border-radius: 99px;
+  letter-spacing: .03em;
+}
+.badge-da-produrre {
+  font-size: .6rem;
+  font-weight: 700;
+  background: var(--danger-dim);
+  color: var(--danger);
+  padding: .15rem .4rem;
+  border-radius: 99px;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+
+/* Bottone spunta */
+.btn-spunta {
+  background: var(--success-dim);
+  color: var(--success);
+  border: 1px solid rgba(34,197,94,.3);
+  border-radius: var(--radius-sm);
+  padding: .3rem .5rem;
+  font-size: .75rem;
+  cursor: pointer;
+  transition: background var(--ease);
+  width: 100%;
+}
+.btn-spunta:hover:not(:disabled) { background: rgba(34,197,94,.25); }
+.btn-spunta:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ================================================================
+   STAMPA
+================================================================ */
+
+@media print {
+  body > *:not(#print-area) { display: none !important; }
+  #print-area {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    padding: 1.5cm 1.5cm 1cm;
+    color: #111;
+    font-family: Arial, sans-serif;
+    font-size: 11pt;
+  }
+}
+
+.print-doc { color: #111; font-family: Arial, sans-serif; }
+
+.print-header { margin-bottom: 1rem; }
+.print-header h1 {
+  font-size: 16pt;
+  font-weight: 700;
+  margin-bottom: .4rem;
+  border-bottom: 2px solid #111;
+  padding-bottom: .3rem;
+}
+.print-meta {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 9pt;
+  color: #444;
+  flex-wrap: wrap;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: .5rem;
+  font-size: 10pt;
+}
+.print-table th {
+  background: #f0f0f0;
+  border: 1px solid #bbb;
+  padding: .35rem .5rem;
+  text-align: left;
+  font-weight: 700;
+}
+.print-table td {
+  border: 1px solid #bbb;
+  padding: .3rem .5rem;
+  vertical-align: middle;
+}
+.print-table .tc { text-align: center; }
+
+.print-warning     { color: #b45309; font-weight: 700; }
+.print-danger      { color: #b91c1c; font-weight: 700; }
+.print-warning-row td { background: #fffbeb; }
+.print-danger-row  td { background: #fef2f2; color: #b91c1c; }
+.print-section-sep td {
+  background: #e5e7eb;
+  font-weight: 700;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: .25rem .5rem;
+}
+.note-col { width: 3.5cm; }
+
+.print-footer {
+  margin-top: .75rem;
+  font-size: 9pt;
+  color: #555;
+  border-top: 1px solid #ccc;
+  padding-top: .4rem;
+}
+
+.print-firma {
+  display: flex;
+  gap: 3rem;
+  margin-top: 2.5rem;
+}
+.firma-box { flex: 1; }
+.firma-line {
+  border-bottom: 1px solid #555;
+  margin-bottom: .3rem;
+  height: 1.8rem;
+}
+.firma-label { font-size: 8pt; color: #666; text-align: center; }
