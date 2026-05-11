@@ -15,6 +15,7 @@ export function initOrdiniFornitori(firestoreDb) {
   document.getElementById('aggiorna-proposte-btn').addEventListener('click', generaProposte);
   document.getElementById('list-proposte').addEventListener('click', gestisciClickProposte);
   document.getElementById('list-storico').addEventListener('click', gestisciClickStorico);
+  document.getElementById('list-storico').addEventListener('change', gestisciChangeStorico);
   document.getElementById('copy-email-btn').addEventListener('click', copiaTestoEmail);
 
   generaProposte();
@@ -61,6 +62,7 @@ function creaCardProposta(fornitore, prodotti) {
       <td class="td-nome">${p.nome}</td>
       <td><input type="number" class="order-qty-input" value="${p.minimoOrdinabile ?? 1}" min="1"></td>
       <td class="td-unita">${p.unitaDiAcquisto ?? 'BOX'}</td>
+      <td><input type="date" class="row-data-consegna"></td>
     </tr>`).join('');
 
   const card = document.createElement('div');
@@ -79,27 +81,41 @@ function creaCardProposta(fornitore, prodotti) {
           <th style="width:2.5rem"></th>
           <th>Codice</th><th>Nome</th>
           <th style="width:5rem">Qtà</th><th>Unità</th>
+          <th style="width:9rem">Consegna</th>
         </tr></thead>
         <tbody>${righe}</tbody>
       </table>
     </div>
     <div class="proposta-footer">
-      <label class="proposta-data-label">
-        <i class="fas fa-calendar-alt"></i> Data consegna prevista
-        <span style="color:var(--text-muted);font-size:.7rem">(opzionale)</span>
-      </label>
-      <input type="date" class="proposta-data-consegna">
+      <span class="proposta-data-label">
+        <i class="fas fa-calendar-alt"></i> Data di default:
+      </span>
+      <input type="date" class="proposta-data-default">
+      <button class="btn-ghost btn-sm applica-data-btn">
+        <i class="fas fa-check"></i> Applica a tutti
+      </button>
     </div>`;
 
   return card;
 }
 
 function gestisciClickProposte(e) {
-  const btn = e.target.closest('.crea-ordine-btn');
+  const btn = e.target.closest('button');
   if (!btn) return;
 
   const card = btn.closest('.proposta-card');
   if (!card) return;
+
+  // "Applica a tutti" — copia la data di default su ogni riga
+  if (btn.classList.contains('applica-data-btn')) {
+    const dataDefault = card.querySelector('.proposta-data-default').value;
+    card.querySelectorAll('.row-data-consegna').forEach(input => {
+      input.value = dataDefault;
+    });
+    return;
+  }
+
+  if (!btn.classList.contains('crea-ordine-btn')) return;
 
   const fornitore = card.querySelector('.proposta-fornitore').textContent;
   const righe = Array.from(card.querySelectorAll('tbody tr'))
@@ -113,27 +129,25 @@ function gestisciClickProposte(e) {
     nome:             row.querySelector('.td-nome').textContent,
     quantitaOrdinata: parseInt(row.querySelector('.order-qty-input').value, 10),
     unita:            row.querySelector('.td-unita').textContent.trim(),
+    dataConsegna:     row.querySelector('.row-data-consegna').value || null,
     ricevuto:         false
   }));
 
   const invalidi = prodotti.filter(p => isNaN(p.quantitaOrdinata) || p.quantitaOrdinata <= 0);
   if (invalidi.length > 0) { alert(`Quantità non valida per: "${invalidi[0].nome}"`); return; }
 
-  const dataConsegna = card.querySelector('.proposta-data-consegna')?.value || null;
-
   btn.disabled = true;
-  creaOrdine(fornitore, prodotti, dataConsegna).finally(() => { btn.disabled = false; });
+  creaOrdine(fornitore, prodotti).finally(() => { btn.disabled = false; });
 }
 
-async function creaOrdine(fornitore, prodotti, dataConsegna) {
+async function creaOrdine(fornitore, prodotti) {
   try {
     const batch = writeBatch(db);
 
     batch.set(doc(collection(db, "ordini")), {
-      idFornitore:          fornitore,
-      dataOrdine:           serverTimestamp(),
-      stato:                'Attivo',
-      dataConsegnaPrevista: dataConsegna || null,
+      idFornitore: fornitore,
+      dataOrdine:  serverTimestamp(),
+      stato:       'Attivo',
       prodotti
     });
 
@@ -213,7 +227,10 @@ function creaCardStorico(ordine) {
   const tuttiRicevuti  = prodotti.length > 0 && prodotti.every(p => p.ricevuto);
 
   const prodottiHtml = prodotti.map((p, i) => {
-    const btn = p.ricevuto
+    const dataFmt = p.dataConsegna
+      ? new Date(p.dataConsegna + 'T00:00:00').toLocaleDateString('it-IT')
+      : '';
+    const btnArrivo = p.ricevuto
       ? `<button class="arrivo-btn-completato" disabled>Caricata</button>`
       : `<button class="arrivo-btn"
            data-product-id="${p.idProdotto}"
@@ -224,14 +241,21 @@ function creaCardStorico(ordine) {
            data-nome="${p.nome}">Arrivata</button>`;
     return `
       <li class="storico-item${p.ricevuto ? ' ricevuto' : ''}">
-        <span class="storico-item-nome">${p.nome} (${p.codice ?? '—'}) — <strong>${p.quantitaOrdinata} ${p.unita}</strong></span>
-        ${btn}
+        <div class="storico-item-main">
+          <span class="storico-item-nome">${p.nome} (${p.codice ?? '—'}) — <strong>${p.quantitaOrdinata} ${p.unita}</strong></span>
+          <div class="storico-item-data-row">
+            <input type="date" class="storico-prodotto-data"
+              value="${p.dataConsegna ?? ''}"
+              data-ordine-id="${ordine.id}"
+              data-item-index="${i}"
+              ${p.ricevuto ? 'disabled' : ''}
+              title="Data consegna prevista">
+            ${dataFmt ? `<span class="storico-consegna-fmt">${dataFmt}</span>` : ''}
+          </div>
+        </div>
+        ${btnArrivo}
       </li>`;
   }).join('');
-
-  const dataConsegnaFmt = ordine.dataConsegnaPrevista
-    ? new Date(ordine.dataConsegnaPrevista + 'T00:00:00').toLocaleDateString('it-IT')
-    : null;
 
   const card = document.createElement('div');
   card.className = `ordine-storico-card${tuttiRicevuti ? ' completato' : ''}`;
@@ -246,27 +270,16 @@ function creaCardStorico(ordine) {
         <i class="fas fa-trash"></i>
       </button>
     </div>
-    <div class="storico-data-consegna">
-      <label class="storico-consegna-label">
-        <i class="fas fa-calendar-alt"></i> Consegna prevista:
-      </label>
-      <input type="date" class="storico-consegna-input"
-        value="${ordine.dataConsegnaPrevista ?? ''}"
-        data-id="${ordine.id}"
-        placeholder="—">
-      ${dataConsegnaFmt ? `<span class="storico-consegna-fmt">${dataConsegnaFmt}</span>` : ''}
+    <div class="storico-bulk-date">
+      <span class="storico-consegna-label"><i class="fas fa-calendar-alt"></i> Data di default:</span>
+      <input type="date" class="storico-data-default">
+      <button class="btn-ghost btn-sm applica-tutti-storico-btn" data-id="${ordine.id}">
+        <i class="fas fa-check"></i> Applica a tutti
+      </button>
     </div>
     <ul class="storico-prodotti">${prodottiHtml}</ul>
     ${tuttiRicevuti ? '<div class="storico-completato-badge"><i class="fas fa-check-circle"></i> Tutto ricevuto</div>' : ''}
   `;
-
-  card.querySelector('.storico-consegna-input').addEventListener('change', async e => {
-    try {
-      await updateDoc(doc(db, "ordini", ordine.id), {
-        dataConsegnaPrevista: e.target.value || null
-      });
-    } catch (err) { console.error("Errore salvataggio data consegna:", err); }
-  });
 
   return card;
 }
@@ -284,7 +297,47 @@ function gestisciClickStorico(e) {
     ).finally(() => { btn.disabled = false; });
   } else if (btn.classList.contains('cancella-ordine-btn')) {
     cancellaOrdine(btn.dataset.id);
+  } else if (btn.classList.contains('applica-tutti-storico-btn')) {
+    const card      = btn.closest('.ordine-storico-card');
+    const dataVal   = card.querySelector('.storico-data-default').value;
+    const ordineId  = btn.dataset.id;
+    card.querySelectorAll('.storico-prodotto-data:not(:disabled)').forEach(input => {
+      input.value = dataVal;
+    });
+    applicaDataATutti(ordineId, dataVal);
   }
+}
+
+function gestisciChangeStorico(e) {
+  const input = e.target.closest('.storico-prodotto-data');
+  if (!input) return;
+  aggiornaDataConsegnaProdotto(
+    input.dataset.ordineId,
+    parseInt(input.dataset.itemIndex),
+    input.value || null
+  );
+}
+
+async function aggiornaDataConsegnaProdotto(ordineId, itemIndex, dataConsegna) {
+  const ordine = ordiniStorico.find(o => o.id === ordineId);
+  if (!ordine) return;
+  const prodotti = ordine.prodotti.map((p, i) =>
+    i === itemIndex ? { ...p, dataConsegna: dataConsegna ?? null } : p
+  );
+  try {
+    await updateDoc(doc(db, "ordini", ordineId), { prodotti });
+  } catch (err) { console.error("Errore salvataggio data consegna:", err); }
+}
+
+async function applicaDataATutti(ordineId, dataConsegna) {
+  const ordine = ordiniStorico.find(o => o.id === ordineId);
+  if (!ordine) return;
+  const prodotti = ordine.prodotti.map(p =>
+    p.ricevuto ? p : { ...p, dataConsegna: dataConsegna || null }
+  );
+  try {
+    await updateDoc(doc(db, "ordini", ordineId), { prodotti });
+  } catch (err) { console.error("Errore applica data a tutti:", err); }
 }
 
 // ─── Battesimo (registra arrivo merce) ────────────────────────────

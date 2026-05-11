@@ -1841,6 +1841,16 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   border-bottom: 1px solid var(--border-soft);
 }
 .proposta-table tr:last-child td { border-bottom: none; }
+.proposta-table .row-data-consegna {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: .25rem .4rem;
+  font-size: .78rem;
+  font-family: var(--font);
+  width: 8.5rem;
+}
 .proposta-table .order-qty-input {
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -1960,20 +1970,22 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   cursor: default;
 }
 
-.storico-data-consegna {
+/* Bulk date — storico */
+.storico-bulk-date {
   display: flex;
   align-items: center;
   gap: .5rem;
   padding: .45rem .875rem;
   border-bottom: 1px solid var(--border-soft);
   flex-wrap: wrap;
+  background: var(--bg-elevated);
 }
 .storico-consegna-label {
   font-size: .78rem;
   color: var(--text-secondary);
   white-space: nowrap;
 }
-.storico-consegna-input {
+.storico-data-default {
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1982,8 +1994,31 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   font-size: .8rem;
   font-family: var(--font);
 }
+
+/* Date per prodotto — storico */
+.storico-item-main {
+  flex: 1;
+  min-width: 0;
+}
+.storico-item-data-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-top: .2rem;
+}
+.storico-prodotto-data {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: .15rem .4rem;
+  font-size: .75rem;
+  font-family: var(--font);
+  width: 8.5rem;
+}
+.storico-prodotto-data:disabled { opacity: .4; }
 .storico-consegna-fmt {
-  font-size: .78rem;
+  font-size: .72rem;
   font-weight: 600;
   color: var(--accent);
 }
