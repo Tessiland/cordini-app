@@ -26,9 +26,7 @@ export function initCatalogo(firestoreDb, userEmail) {
   document.getElementById('search-catalogo').addEventListener('input', render);
   document.getElementById('add-anagrafica-btn').addEventListener('click', apriAggiungi);
   document.getElementById('import-btn').addEventListener('click', avviaImport);
-  document.getElementById('fix-fornitori-btn').addEventListener('click', correggiFornitori);
-  document.getElementById('fix-roccatura-btn').addEventListener('click', correggiRoccatura);
-  document.getElementById('clear-pf-btn').addEventListener('click', svuotaProdottiFiniti);
+document.getElementById('clear-pf-btn').addEventListener('click', svuotaProdottiFiniti);
   document.getElementById('list-catalogo').addEventListener('click', gestisciClick);
   document.getElementById('add-componente-btn').addEventListener('click', () => {
     componentiForm.push({ idProdotto: '', nomeProdotto: '', percentuale: 0 });
@@ -385,121 +383,6 @@ async function avviaImport() {
   reader.readAsArrayBuffer(fileInput.files[0]);
 }
 
-async function correggiFornitori() {
-  const fileInput = document.getElementById('import-file');
-  const statusEl  = document.getElementById('import-status');
-  const btn       = document.getElementById('fix-fornitori-btn');
-
-  if (!fileInput.files[0]) {
-    statusEl.style.color = 'var(--danger)';
-    statusEl.textContent = 'Seleziona il file Excel (lo stesso usato per l\'import).';
-    return;
-  }
-
-  btn.disabled = true;
-  statusEl.style.color = 'var(--text-secondary)';
-  statusEl.textContent = 'Lettura file Excel…';
-
-  const reader = new FileReader();
-  reader.onload = async e => {
-    try {
-      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-      const rows     = XLSX.utils.sheet_to_json(
-        workbook.Sheets[workbook.SheetNames[0]], { header: 1 }
-      );
-
-      const hdr  = rows[0] ?? [];
-      const iCod = headerIndex(hdr, 'cod.', 'cod', 'codice');
-      const iForn = headerIndex(hdr, 'fornitore');
-
-      if (iCod === -1 || iForn === -1) {
-        statusEl.style.color = 'var(--danger)';
-        statusEl.textContent = `Colonne non trovate — Cod:${iCod} Forn:${iForn}. Verifica il file.`;
-        btn.disabled = false;
-        return;
-      }
-
-      // Costruisce mappa SKU → fornitore dall'Excel
-      const mappaExcel = new Map();
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row) continue;
-        const sku = String(row[iCod] ?? '').trim();
-        const fornitore = String(row[iForn] ?? '').trim();
-        if (sku && fornitore) mappaExcel.set(sku, fornitore);
-      }
-
-      statusEl.textContent = `Excel letto: ${mappaExcel.size} SKU con fornitore. Analisi Firestore…`;
-
-      // Legge tutti i prodotti finiti da Firestore
-      const snap = await getDocs(collection(db, "prodotti_finiti"));
-      const daAggiornare = snap.docs.filter(d => !d.data().fornitore);
-
-      statusEl.textContent = `Trovati ${daAggiornare.length} record senza fornitore. Aggiornamento…`;
-
-      let aggiornati = 0;
-      let nonTrovati = 0;
-      const BATCH_SIZE = 490;
-
-      for (let start = 0; start < daAggiornare.length; start += BATCH_SIZE) {
-        const batch = writeBatch(db);
-        daAggiornare.slice(start, start + BATCH_SIZE).forEach(d => {
-          const sku = d.data().sku;
-          const fornitore = mappaExcel.get(sku);
-          if (fornitore) {
-            batch.update(d.ref, {
-              fornitore,
-              tipoLavorazione: getTipoLavorazione(fornitore)
-            });
-            aggiornati++;
-          } else {
-            nonTrovati++;
-          }
-        });
-        await batch.commit();
-      }
-
-      statusEl.style.color = 'var(--success)';
-      statusEl.textContent = `✓ Aggiornati: ${aggiornati} | Non trovati in Excel: ${nonTrovati}`;
-      fileInput.value = '';
-    } catch (err) {
-      console.error("Errore correzione fornitori:", err);
-      statusEl.style.color = 'var(--danger)';
-      statusEl.textContent = `Errore: ${err.message}`;
-    } finally {
-      btn.disabled = false;
-    }
-  };
-  reader.readAsArrayBuffer(fileInput.files[0]);
-}
-
-async function correggiRoccatura() {
-  const statusEl = document.getElementById('import-status');
-  const btn = document.getElementById('fix-roccatura-btn');
-  btn.disabled = true;
-  statusEl.style.color = 'var(--text-secondary)';
-  statusEl.textContent = 'Ricerca record con typo…';
-  try {
-    const snap = await getDocs(collection(db, "prodotti_finiti"));
-    const daFix = snap.docs.filter(d => d.data().tipoLavorazione === 'raccatura');
-    if (daFix.length === 0) {
-      statusEl.style.color = 'var(--success)';
-      statusEl.textContent = '✓ Nessun record da correggere.';
-      btn.disabled = false;
-      return;
-    }
-    const batch = writeBatch(db);
-    daFix.forEach(d => batch.update(d.ref, { tipoLavorazione: 'roccatura' }));
-    await batch.commit();
-    statusEl.style.color = 'var(--success)';
-    statusEl.textContent = `✓ Corretti ${daFix.length} record: raccatura → roccatura.`;
-  } catch (err) {
-    statusEl.style.color = 'var(--danger)';
-    statusEl.textContent = `Errore: ${err.message}`;
-  } finally {
-    btn.disabled = false;
-  }
-}
 
 async function svuotaProdottiFiniti() {
   const statusEl = document.getElementById('import-status');

@@ -159,7 +159,7 @@ function creaRigaColore(p) {
   if (rocche <= soglia && rocche > 0) stockClass = 'warning';
   if (rocche === 0)                   stockClass = 'danger';
 
-  const tipoBadge = (p.tipoLavorazione === 'roccatura' || p.tipoLavorazione === 'raccatura')
+  const tipoBadge = (p.tipoLavorazione === 'roccatura')
     ? `<span class="tag tag-warning" style="font-size:.6rem">ROCCATURA</span>`
     : '';
 
