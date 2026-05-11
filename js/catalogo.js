@@ -27,6 +27,7 @@ export function initCatalogo(firestoreDb, userEmail) {
   document.getElementById('add-anagrafica-btn').addEventListener('click', apriAggiungi);
   document.getElementById('import-btn').addEventListener('click', avviaImport);
   document.getElementById('fix-fornitori-btn').addEventListener('click', correggiFornitori);
+  document.getElementById('fix-roccatura-btn').addEventListener('click', correggiRoccatura);
   document.getElementById('clear-pf-btn').addEventListener('click', svuotaProdottiFiniti);
   document.getElementById('list-catalogo').addEventListener('click', gestisciClick);
   document.getElementById('add-componente-btn').addEventListener('click', () => {
@@ -470,6 +471,34 @@ async function correggiFornitori() {
     }
   };
   reader.readAsArrayBuffer(fileInput.files[0]);
+}
+
+async function correggiRoccatura() {
+  const statusEl = document.getElementById('import-status');
+  const btn = document.getElementById('fix-roccatura-btn');
+  btn.disabled = true;
+  statusEl.style.color = 'var(--text-secondary)';
+  statusEl.textContent = 'Ricerca record con typo…';
+  try {
+    const snap = await getDocs(collection(db, "prodotti_finiti"));
+    const daFix = snap.docs.filter(d => d.data().tipoLavorazione === 'raccatura');
+    if (daFix.length === 0) {
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = '✓ Nessun record da correggere.';
+      btn.disabled = false;
+      return;
+    }
+    const batch = writeBatch(db);
+    daFix.forEach(d => batch.update(d.ref, { tipoLavorazione: 'roccatura' }));
+    await batch.commit();
+    statusEl.style.color = 'var(--success)';
+    statusEl.textContent = `✓ Corretti ${daFix.length} record: raccatura → roccatura.`;
+  } catch (err) {
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = `Errore: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function svuotaProdottiFiniti() {
