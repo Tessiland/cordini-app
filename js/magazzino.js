@@ -113,15 +113,15 @@ function creaCardProdotto(p) {
     <div class="product-card-stats">
       <div class="stat-box">
         <div class="stat-value ${valueClass}">${disponibili}</div>
-        <div class="stat-label">Disponibili</div>
+        <div class="stat-label">Cartoni</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value ${valueClass}">${p.kgPerCartone ? (disponibili * p.kgPerCartone).toLocaleString('it-IT') : '—'}</div>
+        <div class="stat-label">Kg totali</div>
       </div>
       <div class="stat-box">
         <div class="stat-value">${soglia}</div>
         <div class="stat-label">Soglia</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-value">${p.minimoOrdinabile ?? 1} ${p.unitaDiAcquisto ?? 'BOX'}</div>
-        <div class="stat-label">Min. Ordine</div>
       </div>
     </div>
     <div class="product-card-qty">
@@ -205,7 +205,8 @@ function apriModalModifica(id) {
   document.getElementById('p-fornitore').value = p.idFornitore ?? '';
   document.getElementById('p-quantita').value = p.quantitaDisponibile ?? 0;
   document.getElementById('p-soglia').value   = p.sogliaAvviso ?? 0;
-  document.getElementById('p-minimo').value   = p.minimoOrdinabile ?? 1;
+  document.getElementById('p-minimo').value      = p.minimoOrdinabile ?? 1;
+  document.getElementById('p-kg-cartone').value  = p.kgPerCartone ?? '';
 
   const unitaInput = document.querySelector(`input[name="p-unita"][value="${p.unitaDiAcquisto ?? 'BOX'}"]`);
   if (unitaInput) unitaInput.checked = true;
@@ -218,6 +219,7 @@ async function salvaProdotto(e) {
   const form = e.target;
   const { mode, id } = form.dataset;
 
+  const kgRaw = document.getElementById('p-kg-cartone').value;
   const dati = {
     nome:               document.getElementById('p-nome').value.trim(),
     codice:             document.getElementById('p-codice').value.trim(),
@@ -225,7 +227,8 @@ async function salvaProdotto(e) {
     quantitaDisponibile: Number(document.getElementById('p-quantita').value),
     sogliaAvviso:       Number(document.getElementById('p-soglia').value),
     unitaDiAcquisto:    document.querySelector('input[name="p-unita"]:checked').value,
-    minimoOrdinabile:   Number(document.getElementById('p-minimo').value)
+    minimoOrdinabile:   Number(document.getElementById('p-minimo').value),
+    kgPerCartone:       kgRaw !== '' ? Number(kgRaw) : null
   };
 
   try {
