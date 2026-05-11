@@ -1,6 +1,6 @@
 import {
   collection, query, orderBy, onSnapshot, doc, addDoc,
-  getDocs, runTransaction, serverTimestamp
+  getDocs, runTransaction, serverTimestamp, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getProdottiFiniti } from './prodotto-finito.js';
 
@@ -80,6 +80,9 @@ function creaCardOrdine(ordine) {
         </button>
         <button class="btn-ghost btn-sm" data-action="stampa-consegna" data-id="${ordine.id}">
           <i class="fas fa-file-invoice"></i> Stampa Consegna
+        </button>
+        <button class="btn-ghost btn-sm btn-ghost-danger" data-action="elimina" data-id="${ordine.id}">
+          <i class="fas fa-trash"></i> Elimina
         </button>
       </div>
       <div class="ordine-items">
@@ -173,6 +176,8 @@ function gestisciClick(e) {
   } else if (action === 'stampa-consegna') {
     const o = ordini.find(o => o.id === el.dataset.id);
     if (o) stampaConsegna(o);
+  } else if (action === 'elimina') {
+    eliminaOrdine(el.dataset.id);
   } else if (action === 'spunta') {
     el.disabled = true;
     spuntaItem(el.dataset.ordineId, Number(el.dataset.index))
@@ -183,6 +188,20 @@ function gestisciClick(e) {
 function toggleOrdine(id) {
   statiAperti.has(id) ? statiAperti.delete(id) : statiAperti.add(id);
   renderOrdini();
+}
+
+async function eliminaOrdine(id) {
+  const ordine = ordini.find(o => o.id === id);
+  if (!ordine) return;
+  if (!confirm(`Rimuovere l'ordine #${ordine.numero} dalla sezione Produzione?`)) return;
+  if (!confirm('Conferma: l\'ordine verrà eliminato definitivamente. Continuare?')) return;
+  try {
+    await deleteDoc(doc(db, "ordini_produzione", id));
+    statiAperti.delete(id);
+  } catch (err) {
+    console.error("Errore eliminazione ordine:", err);
+    alert('Errore durante l\'eliminazione. Riprova.');
+  }
 }
 
 // ─── Spunta item ─────────────────────────────────────────────────

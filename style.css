@@ -1765,6 +1765,13 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   white-space: nowrap;
 }
 
+/* Bottone ghost danger (elimina ordine) */
+.btn-ghost-danger {
+  color: var(--danger) !important;
+  margin-left: auto;
+}
+.btn-ghost-danger:hover { background: var(--danger-dim) !important; }
+
 /* Bottone spunta */
 .btn-spunta {
   background: var(--success-dim);
