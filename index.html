@@ -353,9 +353,9 @@
       <form id="form-prodotto-finito" data-mode="add" data-id="">
         <div class="field-group">
           <label for="pf-fornitore">Fornitore</label>
-          <select id="pf-fornitore" required>
-            <option value="">— Seleziona fornitore —</option>
-          </select>
+          <input type="text" id="pf-fornitore" list="fornitori-pf-datalist"
+                 placeholder="Es. Giletti S.P.A., Indorama…" required autocomplete="off">
+          <datalist id="fornitori-pf-datalist"></datalist>
         </div>
         <div class="field-group">
           <label for="pf-tipologia">Tipo Cordino</label>
