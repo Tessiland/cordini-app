@@ -1,5 +1,5 @@
 import {
-  collection, query, orderBy, onSnapshot, doc,
+  collection, query, orderBy, onSnapshot, doc, getDocs,
   addDoc, updateDoc, deleteDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
@@ -26,6 +26,7 @@ export function initCatalogo(firestoreDb, userEmail) {
   document.getElementById('search-catalogo').addEventListener('input', render);
   document.getElementById('add-anagrafica-btn').addEventListener('click', apriAggiungi);
   document.getElementById('import-btn').addEventListener('click', avviaImport);
+  document.getElementById('clear-pf-btn').addEventListener('click', svuotaProdottiFiniti);
   document.getElementById('list-catalogo').addEventListener('click', gestisciClick);
   document.getElementById('add-componente-btn').addEventListener('click', () => {
     componentiForm.push({ idProdotto: '', nomeProdotto: '', percentuale: 0 });
@@ -266,34 +267,41 @@ async function elimina(id, nome) {
 function parseDescrizione(desc) {
   const m = desc.match(/^(.+?)\s+(Grammi|Gr)\s+(\d+)/i);
   let before, pesoFormato;
-  if (m) {
-    before      = m[1].trim();
-    pesoFormato = Number(m[3]);
-  } else {
-    before      = desc.trim();
-    pesoFormato = null;
-  }
-  const words  = before.split(' ').filter(w => w);
-  const colore = words.length > 1 ? words[words.length - 1] : '';
-  const nome   = words.length > 1 ? words.slice(0, -1).join(' ') : before;
-  return { nome, colore, pesoFormato };
+  if (m) { before = m[1].trim(); pesoFormato = Number(m[3]); }
+  else   { before = desc.trim(); pesoFormato = null; }
+  const words = before.split(' ').filter(w => w);
+  return {
+    nome:        words.length > 1 ? words.slice(0, -1).join(' ') : before,
+    colore:      words.length > 1 ? words[words.length - 1] : '',
+    pesoFormato
+  };
 }
 
 function getTipoLavorazione(fornitore) {
   return fornitore.trim() === 'Cofil S.R.L.' ? 'raccatura' : 'cordini';
 }
 
+// Trova l'indice di colonna dal nome (case-insensitive, ignora spazi extra)
+function headerIndex(headerRow, ...names) {
+  for (const name of names) {
+    const idx = headerRow.findIndex(h =>
+      String(h ?? '').trim().toLowerCase() === name.toLowerCase()
+    );
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
 async function avviaImport() {
-  const fileInput  = document.getElementById('import-file');
-  const statusEl   = document.getElementById('import-status');
-  const btn        = document.getElementById('import-btn');
+  const fileInput = document.getElementById('import-file');
+  const statusEl  = document.getElementById('import-status');
+  const btn       = document.getElementById('import-btn');
 
   if (!fileInput.files[0]) {
     statusEl.style.color = 'var(--danger)';
     statusEl.textContent = 'Seleziona un file Excel prima di procedere.';
     return;
   }
-
   if (!confirm('Stai per importare i prodotti nel Magazzino Prodotto Finito. Continuare?')) return;
 
   btn.disabled = true;
@@ -303,48 +311,52 @@ async function avviaImport() {
   const reader = new FileReader();
   reader.onload = async e => {
     try {
-      const data     = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet    = workbook.Sheets[workbook.SheetNames[0]];
-      const rows     = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const rows     = XLSX.utils.sheet_to_json(
+        workbook.Sheets[workbook.SheetNames[0]], { header: 1 }
+      );
 
-      // Riga 0 = intestazioni, dati da riga 1 in poi
-      // Colonne: 0=vuoto, 1=No, 2=Cod, 3=Descrizione, 4=Libero4, 5=Qtà, 6=Fornitore, 7=Ubicazione, 8=Note
+      // Riga 0 = intestazioni — rilevo gli indici automaticamente
+      const hdr = rows[0] ?? [];
+      const iCod  = headerIndex(hdr, 'cod.', 'cod', 'codice');
+      const iDesc = headerIndex(hdr, 'descrizione', 'desc');
+      const iLib4 = headerIndex(hdr, 'libero 4', 'libero4', 'partita');
+      const iQta  = headerIndex(hdr, "q.tà in giacenza", "q.ta in giacenza", "quantità", "qta", "giacenza");
+      const iForn = headerIndex(hdr, 'fornitore');
+      const iUbic = headerIndex(hdr, 'ubicazione');
+      const iNote = headerIndex(hdr, 'note');
+
+      statusEl.textContent = `Colonne rilevate — Cod:${iCod} Desc:${iDesc} Qtà:${iQta} Forn:${iForn}`;
+
+      const get = (row, idx) => idx !== -1 ? String(row[idx] ?? '').trim() : '';
+
       const records = [];
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (!row || !row[3]) continue; // skip righe vuote
-
-        const sku         = String(row[2] ?? '').trim();
-        const descrizione = String(row[3] ?? '').trim();
-        const partita     = String(row[4] ?? '').trim() || 'NP';
-        const quantita    = Number(row[5]) || 0;
-        const fornitore   = String(row[6] ?? '').trim();
-        const ubicazione  = String(row[7] ?? '').trim();
-        const note        = String(row[8] ?? '').trim();
-
+        if (!row) continue;
+        const descrizione = get(row, iDesc);
         if (!descrizione) continue;
 
         const { nome, colore, pesoFormato } = parseDescrizione(descrizione);
+        const fornitore = get(row, iForn);
 
         records.push({
-          sku,
+          sku:            get(row, iCod),
           nome,
           colore,
           pesoFormato,
-          partita,
-          quantitaRocche: quantita,
+          partita:        get(row, iLib4) || 'NP',
+          quantitaRocche: Number(row[iQta]) || 0,
           fornitore,
-          ubicazione,
-          note,
+          ubicazione:     get(row, iUbic),
+          note:           get(row, iNote),
           tipoLavorazione: getTipoLavorazione(fornitore),
-          sogliaAvviso: 0
+          sogliaAvviso:   0
         });
       }
 
       statusEl.textContent = `Trovati ${records.length} prodotti. Scrittura su Firestore…`;
 
-      // Firestore writeBatch (max 500 per batch)
       const BATCH_SIZE = 490;
       let scritti = 0;
       for (let start = 0; start < records.length; start += BATCH_SIZE) {
@@ -363,10 +375,36 @@ async function avviaImport() {
     } catch (err) {
       console.error("Errore import:", err);
       statusEl.style.color = 'var(--danger)';
-      statusEl.textContent = 'Errore durante l\'import. Controlla la console.';
+      statusEl.textContent = `Errore: ${err.message}`;
     } finally {
       btn.disabled = false;
     }
   };
   reader.readAsArrayBuffer(fileInput.files[0]);
+}
+
+async function svuotaProdottiFiniti() {
+  const statusEl = document.getElementById('import-status');
+  if (!confirm('ATTENZIONE: questa operazione elimina TUTTI i prodotti finiti da Firestore. Non è reversibile.')) return;
+  if (!confirm('Conferma definitiva: eliminare tutti i prodotti finiti?')) return;
+
+  statusEl.style.color = 'var(--text-secondary)';
+  statusEl.textContent = 'Eliminazione in corso…';
+
+  try {
+    const snap = await getDocs(collection(db, "prodotti_finiti"));
+    const BATCH_SIZE = 490;
+    const docsArr = snap.docs;
+    for (let i = 0; i < docsArr.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      docsArr.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    statusEl.style.color = 'var(--success)';
+    statusEl.textContent = `✓ Eliminati ${docsArr.length} prodotti finiti. Ora puoi re-importare.`;
+  } catch (err) {
+    console.error("Errore svuotamento:", err);
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = `Errore: ${err.message}`;
+  }
 }

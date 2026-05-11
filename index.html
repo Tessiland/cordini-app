@@ -189,9 +189,14 @@
             <label for="import-file">File Excel (.xlsx)</label>
             <input type="file" id="import-file" accept=".xlsx,.xls">
           </div>
-          <button id="import-btn" class="btn-primary">
-            <i class="fas fa-file-import"></i> Avvia Import
-          </button>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem">
+            <button id="import-btn" class="btn-primary">
+              <i class="fas fa-file-import"></i> Avvia Import
+            </button>
+            <button id="clear-pf-btn" class="btn-danger btn-sm">
+              <i class="fas fa-trash"></i> Cancella tutti e re-importa
+            </button>
+          </div>
           <p id="import-status" style="font-size:.8rem;margin-top:.625rem;min-height:1.2em"></p>
         </div>
 
