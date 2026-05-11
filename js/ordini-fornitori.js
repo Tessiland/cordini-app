@@ -339,7 +339,7 @@ async function cancellaOrdine(ordineId) {
 
     const batch = writeBatch(db);
     for (const p of ordineDoc.data().prodotti ?? []) {
-      if (p.idProdotto) {
+      if (p.idProdotto && p.quantitaOrdinata > 0) {
         batch.update(doc(db, "prodotti", p.idProdotto), {
           quantitaOrdinata: increment(-p.quantitaOrdinata)
         });
@@ -349,6 +349,6 @@ async function cancellaOrdine(ordineId) {
     await batch.commit();
   } catch (err) {
     console.error("Errore cancellazione ordine:", err);
-    alert('Errore durante la cancellazione.');
+    alert(`Errore durante la cancellazione: ${err.message}`);
   }
 }
