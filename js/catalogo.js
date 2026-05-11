@@ -279,7 +279,7 @@ function parseDescrizione(desc) {
 }
 
 function getTipoLavorazione(fornitore) {
-  return fornitore.trim() === 'Cofil S.R.L.' ? 'raccatura' : 'cordini';
+  return fornitore.trim() === 'Cofil S.R.L.' ? 'roccatura' : 'cordini';
 }
 
 // Trova l'indice di colonna dal nome (case-insensitive, ignora spazi extra)
