@@ -359,18 +359,19 @@
         </div>
         <div class="field-group">
           <label for="pf-tipologia">Tipo Cordino</label>
-          <div class="input-row">
-            <select id="pf-tipologia" required>
-              <option value="">— Seleziona tipo cordino —</option>
-            </select>
-            <button type="button" id="add-tipologia-btn" class="btn-secondary btn-sm">+ Nuovo</button>
-          </div>
+          <input type="text" id="pf-tipologia" list="tipologie-datalist"
+                 placeholder="Es. Thai Sublime, Fettuccia Pandoro Queen…" required autocomplete="off">
+          <datalist id="tipologie-datalist"></datalist>
         </div>
         <div class="field-group">
-          <label for="pf-colore">Colore / Prodotto</label>
-          <select id="pf-colore" required>
-            <option value="">— Seleziona prima un fornitore —</option>
-          </select>
+          <label for="pf-colore">Colore</label>
+          <input type="text" id="pf-colore" list="colori-datalist"
+                 placeholder="Es. Becco Oca, Naturale, Rosso…" required autocomplete="off">
+          <datalist id="colori-datalist"></datalist>
+        </div>
+        <div class="field-group">
+          <label for="pf-ubicazione">Ubicazione</label>
+          <input type="text" id="pf-ubicazione" placeholder="Es. BK-11, AD-1…">
         </div>
         <div class="field-group">
           <label for="pf-partita">Partita <span style="color:var(--text-muted);font-weight:400">(opzionale)</span></label>

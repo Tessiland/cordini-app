@@ -1,41 +1,37 @@
 import {
-  collection, getDocs, addDoc, query, orderBy, where
+  collection, getDocs, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 let db;
-let tipologie = [];
 
 export async function initTipologie(firestoreDb) {
   db = firestoreDb;
-  await caricaTipologie();
+  await aggiornaDatalists();
 }
 
-async function caricaTipologie() {
-  const snap = await getDocs(query(collection(db, "tipologie"), orderBy("nome")));
-  tipologie = snap.docs.map(d => d.data().nome);
-  aggiornaTipologieSelect();
-}
+export async function aggiornaDatalists() {
+  // Carica nomi unici da prodotti_finiti
+  const [pfSnap] = await Promise.all([
+    getDocs(query(collection(db, "prodotti_finiti")))
+  ]);
 
-function aggiornaTipologieSelect() {
-  const opzioni = tipologie.map(t => `<option value="${t}">${t}</option>`).join('');
-  document.querySelectorAll('#pf-tipologia').forEach(el => {
-    const val = el.value;
-    el.innerHTML = `<option value="">— Seleziona tipo cordino —</option>` + opzioni;
-    if (val && tipologie.includes(val)) el.value = val;
+  const nomiSet   = new Set();
+  const coloriSet = new Set();
+
+  pfSnap.docs.forEach(d => {
+    const data = d.data();
+    if (data.nome)   nomiSet.add(data.nome.trim());
+    if (data.colore) coloriSet.add(data.colore.trim());
   });
-}
 
-export function getTipologie() { return tipologie; }
+  const nomiSorted   = [...nomiSet].sort();
+  const coloriSorted = [...coloriSet].sort();
 
-export async function aggiuntaTipologia() {
-  const nome = prompt('Nome del tipo cordino (es. Thai Sublime):');
-  if (!nome?.trim()) return;
-  const nomeFormattato = nome.trim();
-  const q = query(collection(db, "tipologie"), where("nome", "==", nomeFormattato));
-  const snap = await getDocs(q);
-  if (!snap.empty) { alert(`"${nomeFormattato}" già presente.`); return; }
-  await addDoc(collection(db, "tipologie"), { nome: nomeFormattato });
-  tipologie = [...tipologie, nomeFormattato].sort();
-  aggiornaTipologieSelect();
-  document.querySelectorAll('#pf-tipologia').forEach(el => { el.value = nomeFormattato; });
+  // Popola datalist tipologie
+  const dlTip = document.getElementById('tipologie-datalist');
+  if (dlTip) dlTip.innerHTML = nomiSorted.map(n => `<option value="${n}">`).join('');
+
+  // Popola datalist colori
+  const dlCol = document.getElementById('colori-datalist');
+  if (dlCol) dlCol.innerHTML = coloriSorted.map(c => `<option value="${c}">`).join('');
 }

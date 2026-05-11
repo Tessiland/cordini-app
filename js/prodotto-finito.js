@@ -3,8 +3,7 @@ import {
   addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
-import { aggiuntaTipologia } from './tipologie.js';
-import { getProdotti } from './magazzino.js';
+import { aggiornaDatalists } from './tipologie.js';
 
 let db;
 let operatoreCorrente = 'Operatori';
@@ -26,8 +25,6 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
-  document.getElementById('add-tipologia-btn').addEventListener('click', aggiuntaTipologia);
-  document.getElementById('pf-fornitore').addEventListener('change', aggiornaColoriDaFornitore);
 }
 
 // stato apertura accordion annidato
@@ -235,31 +232,6 @@ async function aggiornaQuantita(idProdotto, azione) {
   }
 }
 
-// ─── Colori da materia prima ──────────────────────────────────────
-function aggiornaColoriDaFornitore(fornitoreSelezionato) {
-  const fornitore = typeof fornitoreSelezionato === 'string'
-    ? fornitoreSelezionato
-    : document.getElementById('pf-fornitore').value;
-
-  const sel = document.getElementById('pf-colore');
-
-  if (!fornitore) {
-    sel.innerHTML = '<option value="">— Seleziona prima un fornitore —</option>';
-    return;
-  }
-
-  const prodotti = getProdotti()
-    .filter(p => p.idFornitore === fornitore)
-    .sort((a, b) => a.nome.localeCompare(b.nome));
-
-  if (prodotti.length === 0) {
-    sel.innerHTML = '<option value="">— Nessun prodotto per questo fornitore —</option>';
-  } else {
-    sel.innerHTML = `<option value="">— Seleziona colore/prodotto —</option>` +
-      prodotti.map(p => `<option value="${p.nome}">${p.nome}${p.codice ? ` (${p.codice})` : ''}</option>`).join('');
-  }
-}
-
 // ─── Modal ───────────────────────────────────────────────────────
 function apriAggiungi() {
   const form = document.getElementById('form-prodotto-finito');
@@ -268,7 +240,7 @@ function apriAggiungi() {
   form.dataset.id   = '';
   document.getElementById('modal-pf-title').textContent = 'Aggiungi Prodotto Finito';
   document.getElementById('pf-error').textContent = '';
-  aggiornaColoriDaFornitore('');
+  aggiornaDatalists();
   openModal('modal-prodotto-finito');
 }
 
@@ -279,14 +251,15 @@ function apriModifica(id) {
   form.dataset.mode = 'edit';
   form.dataset.id   = id;
   document.getElementById('modal-pf-title').textContent = 'Modifica Prodotto Finito';
-  document.getElementById('pf-fornitore').value = p.fornitore ?? '';
-  document.getElementById('pf-tipologia').value = p.nome      ?? '';
-  aggiornaColoriDaFornitore(p.fornitore ?? '');
-  document.getElementById('pf-colore').value    = p.colore    ?? '';
-  document.getElementById('pf-partita').value   = p.partita   ?? '';
-  document.getElementById('pf-rocche').value    = p.quantitaRocche ?? 0;
-  document.getElementById('pf-soglia').value    = p.sogliaAvviso  ?? 0;
+  document.getElementById('pf-fornitore').value   = p.fornitore    ?? '';
+  document.getElementById('pf-tipologia').value   = p.nome         ?? '';
+  document.getElementById('pf-colore').value      = p.colore       ?? '';
+  document.getElementById('pf-ubicazione').value  = p.ubicazione   ?? '';
+  document.getElementById('pf-partita').value     = p.partita      ?? '';
+  document.getElementById('pf-rocche').value      = p.quantitaRocche ?? 0;
+  document.getElementById('pf-soglia').value      = p.sogliaAvviso ?? 0;
   document.getElementById('pf-error').textContent = '';
+  aggiornaDatalists();
   openModal('modal-prodotto-finito');
 }
 
@@ -300,9 +273,10 @@ async function salva(e) {
   saveBtn.disabled  = true;
 
   const dati = {
-    fornitore:      document.getElementById('pf-fornitore').value,
-    nome:           document.getElementById('pf-tipologia').value,
+    fornitore:      document.getElementById('pf-fornitore').value.trim(),
+    nome:           document.getElementById('pf-tipologia').value.trim(),
     colore:         document.getElementById('pf-colore').value.trim(),
+    ubicazione:     document.getElementById('pf-ubicazione').value.trim(),
     partita:        document.getElementById('pf-partita').value.trim(),
     quantitaRocche: Number(document.getElementById('pf-rocche').value),
     sogliaAvviso:   Number(document.getElementById('pf-soglia').value)
