@@ -26,7 +26,8 @@ export function initCatalogo(firestoreDb, userEmail) {
   document.getElementById('search-catalogo').addEventListener('input', render);
   document.getElementById('add-anagrafica-btn').addEventListener('click', apriAggiungi);
   document.getElementById('import-btn').addEventListener('click', avviaImport);
-document.getElementById('clear-pf-btn').addEventListener('click', svuotaProdottiFiniti);
+  document.getElementById('update-qty-btn').addEventListener('click', aggiornaQuantitaDaExcel);
+  document.getElementById('clear-pf-btn').addEventListener('click', svuotaProdottiFiniti);
   document.getElementById('list-catalogo').addEventListener('click', gestisciClick);
   document.getElementById('add-componente-btn').addEventListener('click', () => {
     componentiForm.push({ idProdotto: '', nomeProdotto: '', percentuale: 0 });
@@ -383,6 +384,89 @@ async function avviaImport() {
   reader.readAsArrayBuffer(fileInput.files[0]);
 }
 
+
+async function aggiornaQuantitaDaExcel() {
+  const fileInput = document.getElementById('import-file');
+  const statusEl  = document.getElementById('import-status');
+  const btn       = document.getElementById('update-qty-btn');
+
+  if (!fileInput.files[0]) {
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = 'Seleziona il file Excel prima di procedere.';
+    return;
+  }
+  if (!confirm('Aggiornare le quantità di magazzino in base al file Excel? Le quantità attuali verranno sovrascritte.')) return;
+
+  btn.disabled = true;
+  statusEl.style.color = 'var(--text-secondary)';
+  statusEl.textContent = 'Lettura file in corso…';
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const rows     = XLSX.utils.sheet_to_json(
+        workbook.Sheets[workbook.SheetNames[0]], { header: 1 }
+      );
+
+      const hdr  = rows[0] ?? [];
+      const iCod = headerIndex(hdr, 'cod.', 'cod', 'codice');
+      const iQta = headerIndex(hdr, "q.tà in giacenza", "q.ta in giacenza", "quantità", "qta", "giacenza");
+
+      if (iCod === -1 || iQta === -1) {
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = `Colonne non trovate — SKU:${iCod} Qtà:${iQta}. Verifica il file.`;
+        btn.disabled = false;
+        return;
+      }
+
+      // Mappa SKU → quantità dall'Excel
+      const mappaExcel = new Map();
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row) continue;
+        const sku = String(row[iCod] ?? '').trim();
+        const qty = Number(row[iQta]) || 0;
+        if (sku) mappaExcel.set(sku, qty);
+      }
+
+      statusEl.textContent = `Excel letto: ${mappaExcel.size} SKU. Lettura Firestore…`;
+
+      const snap = await getDocs(collection(db, "prodotti_finiti"));
+      const daAggiornare = snap.docs.filter(d => {
+        const sku = d.data().sku;
+        return sku && mappaExcel.has(sku);
+      });
+
+      const nonTrovati = mappaExcel.size - daAggiornare.length;
+
+      statusEl.textContent = `Trovati ${daAggiornare.length} record da aggiornare. Scrittura…`;
+
+      const BATCH_SIZE = 490;
+      let aggiornati = 0;
+      for (let start = 0; start < daAggiornare.length; start += BATCH_SIZE) {
+        const batch = writeBatch(db);
+        daAggiornare.slice(start, start + BATCH_SIZE).forEach(d => {
+          batch.update(d.ref, { quantitaRocche: mappaExcel.get(d.data().sku) });
+          aggiornati++;
+        });
+        await batch.commit();
+        statusEl.textContent = `Aggiornati ${aggiornati}/${daAggiornare.length}…`;
+      }
+
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = `✓ Aggiornati: ${aggiornati} | SKU non trovati in Firestore: ${nonTrovati}`;
+      fileInput.value = '';
+    } catch (err) {
+      console.error("Errore aggiornamento quantità:", err);
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = `Errore: ${err.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+  reader.readAsArrayBuffer(fileInput.files[0]);
+}
 
 async function svuotaProdottiFiniti() {
   const statusEl = document.getElementById('import-status');
