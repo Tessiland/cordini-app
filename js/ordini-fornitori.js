@@ -82,6 +82,13 @@ function creaCardProposta(fornitore, prodotti) {
         </tr></thead>
         <tbody>${righe}</tbody>
       </table>
+    </div>
+    <div class="proposta-footer">
+      <label class="proposta-data-label">
+        <i class="fas fa-calendar-alt"></i> Data consegna prevista
+        <span style="color:var(--text-muted);font-size:.7rem">(opzionale)</span>
+      </label>
+      <input type="date" class="proposta-data-consegna">
     </div>`;
 
   return card;
@@ -112,18 +119,21 @@ function gestisciClickProposte(e) {
   const invalidi = prodotti.filter(p => isNaN(p.quantitaOrdinata) || p.quantitaOrdinata <= 0);
   if (invalidi.length > 0) { alert(`Quantità non valida per: "${invalidi[0].nome}"`); return; }
 
+  const dataConsegna = card.querySelector('.proposta-data-consegna')?.value || null;
+
   btn.disabled = true;
-  creaOrdine(fornitore, prodotti).finally(() => { btn.disabled = false; });
+  creaOrdine(fornitore, prodotti, dataConsegna).finally(() => { btn.disabled = false; });
 }
 
-async function creaOrdine(fornitore, prodotti) {
+async function creaOrdine(fornitore, prodotti, dataConsegna) {
   try {
     const batch = writeBatch(db);
 
     batch.set(doc(collection(db, "ordini")), {
-      idFornitore: fornitore,
-      dataOrdine:  serverTimestamp(),
-      stato:       'Attivo',
+      idFornitore:          fornitore,
+      dataOrdine:           serverTimestamp(),
+      stato:                'Attivo',
+      dataConsegnaPrevista: dataConsegna || null,
       prodotti
     });
 
@@ -219,6 +229,10 @@ function creaCardStorico(ordine) {
       </li>`;
   }).join('');
 
+  const dataConsegnaFmt = ordine.dataConsegnaPrevista
+    ? new Date(ordine.dataConsegnaPrevista + 'T00:00:00').toLocaleDateString('it-IT')
+    : null;
+
   const card = document.createElement('div');
   card.className = `ordine-storico-card${tuttiRicevuti ? ' completato' : ''}`;
   card.dataset.id = ordine.id;
@@ -232,9 +246,28 @@ function creaCardStorico(ordine) {
         <i class="fas fa-trash"></i>
       </button>
     </div>
+    <div class="storico-data-consegna">
+      <label class="storico-consegna-label">
+        <i class="fas fa-calendar-alt"></i> Consegna prevista:
+      </label>
+      <input type="date" class="storico-consegna-input"
+        value="${ordine.dataConsegnaPrevista ?? ''}"
+        data-id="${ordine.id}"
+        placeholder="—">
+      ${dataConsegnaFmt ? `<span class="storico-consegna-fmt">${dataConsegnaFmt}</span>` : ''}
+    </div>
     <ul class="storico-prodotti">${prodottiHtml}</ul>
     ${tuttiRicevuti ? '<div class="storico-completato-badge"><i class="fas fa-check-circle"></i> Tutto ricevuto</div>' : ''}
   `;
+
+  card.querySelector('.storico-consegna-input').addEventListener('change', async e => {
+    try {
+      await updateDoc(doc(db, "ordini", ordine.id), {
+        dataConsegnaPrevista: e.target.value || null
+      });
+    } catch (err) { console.error("Errore salvataggio data consegna:", err); }
+  });
+
   return card;
 }
 
@@ -304,19 +337,16 @@ async function cancellaOrdine(ordineId) {
     const ordineDoc = await getDoc(ordineRef);
     if (!ordineDoc.exists()) return;
 
+    const batch = writeBatch(db);
     for (const p of ordineDoc.data().prodotti ?? []) {
-      const prodottoRef = doc(db, "prodotti", p.idProdotto);
-      await runTransaction(db, async t => {
-        const snap = await t.get(prodottoRef);
-        if (!snap.exists()) return;
-        const attualeOrdinato = snap.data().quantitaOrdinato ?? 0;
-        t.update(prodottoRef, {
-          quantitaOrdinata: Math.max(0, attualeOrdinato - p.quantitaOrdinata)
+      if (p.idProdotto) {
+        batch.update(doc(db, "prodotti", p.idProdotto), {
+          quantitaOrdinata: increment(-p.quantitaOrdinata)
         });
-      });
+      }
     }
-
-    await deleteDoc(ordineRef);
+    batch.delete(ordineRef);
+    await batch.commit();
   } catch (err) {
     console.error("Errore cancellazione ordine:", err);
     alert('Errore durante la cancellazione.');

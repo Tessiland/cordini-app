@@ -1851,6 +1851,29 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   width: 4.5rem;
 }
 
+.proposta-footer {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .6rem .875rem .75rem;
+  border-top: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+.proposta-data-label {
+  font-size: .78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.proposta-data-consegna {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: .25rem .5rem;
+  font-size: .82rem;
+  font-family: var(--font);
+}
+
 /* ================================================================
    ORDINI FORNITORI — STORICO
 ================================================================ */
@@ -1935,6 +1958,34 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   white-space: nowrap;
   flex-shrink: 0;
   cursor: default;
+}
+
+.storico-data-consegna {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .45rem .875rem;
+  border-bottom: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+.storico-consegna-label {
+  font-size: .78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.storico-consegna-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: .2rem .45rem;
+  font-size: .8rem;
+  font-family: var(--font);
+}
+.storico-consegna-fmt {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .storico-completato-badge {
