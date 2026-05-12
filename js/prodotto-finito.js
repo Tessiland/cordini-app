@@ -38,11 +38,23 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('pf-fornitore').addEventListener('input', e => {
     impostaModalitaFornitore(e.target.value.trim() === 'STOCK');
   });
+
+  document.querySelectorAll('input[name="pf-lavorazione"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const fornVal = document.getElementById('pf-fornitore').value.trim();
+      impostaModalitaFornitore(fornVal === 'STOCK');
+    });
+  });
 }
 
 function impostaModalitaFornitore(isStock) {
-  document.getElementById('pf-colore-stock-group').classList.toggle('hidden', !isStock);
-  document.getElementById('pf-colori-section').classList.toggle('hidden', isStock);
+  const lavorazione   = document.querySelector('input[name="pf-lavorazione"]:checked')?.value;
+  const isRoccatura   = lavorazione === 'roccatura';
+  const usaColoreSemplice = isStock || isRoccatura;
+
+  document.getElementById('pf-colore-stock-group').classList.toggle('hidden', !usaColoreSemplice);
+  document.getElementById('pf-colori-section').classList.toggle('hidden', usaColoreSemplice);
+  document.getElementById('pf-roccatura-note').classList.toggle('hidden', !isRoccatura);
 }
 
 // IBRIDI usa la stessa UI dei cordini normali (isStock = false)
@@ -344,13 +356,15 @@ async function salva(e) {
 
   errEl.textContent = '';
 
-  const fornitore = document.getElementById('pf-fornitore').value.trim();
-  const isStock   = fornitore === 'STOCK';
+  const fornitore   = document.getElementById('pf-fornitore').value.trim();
+  const isStock     = fornitore === 'STOCK';
+  const lavorazione = document.querySelector('input[name="pf-lavorazione"]:checked')?.value;
+  const isRoccatura = lavorazione === 'roccatura';
 
   let coloreCalcolato;
   let coloriDaSalvare;
 
-  if (isStock) {
+  if (isStock || isRoccatura) {
     coloreCalcolato  = document.getElementById('pf-colore-stock').value.trim() || '—';
     coloriDaSalvare  = [];
   } else {
