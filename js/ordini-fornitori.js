@@ -239,7 +239,8 @@ async function creaOrdine(fornitore, prodotti) {
 
     prodotti.forEach(p => {
       batch.update(doc(db, "prodotti", p.idProdotto), {
-        quantitaOrdinata: increment(p.quantitaOrdinata)
+        quantitaOrdinata:    increment(p.quantitaOrdinata),
+        dataConsegnaPrevista: p.dataConsegna || null
       });
     });
 
@@ -420,7 +421,15 @@ async function aggiornaDataConsegnaProdotto(ordineId, itemIndex, dataConsegna) {
     i === itemIndex ? { ...p, dataConsegna: dataConsegna ?? null } : p
   );
   try {
-    await updateDoc(doc(db, "ordini", ordineId), { prodotti });
+    const batch = writeBatch(db);
+    batch.update(doc(db, "ordini", ordineId), { prodotti });
+    const item = ordine.prodotti[itemIndex];
+    if (item?.idProdotto) {
+      batch.update(doc(db, "prodotti", item.idProdotto), {
+        dataConsegnaPrevista: dataConsegna || null
+      });
+    }
+    await batch.commit();
   } catch (err) { console.error("Errore salvataggio data consegna:", err); }
 }
 
@@ -431,7 +440,16 @@ async function applicaDataATutti(ordineId, dataConsegna) {
     p.ricevuto ? p : { ...p, dataConsegna: dataConsegna || null }
   );
   try {
-    await updateDoc(doc(db, "ordini", ordineId), { prodotti });
+    const batch = writeBatch(db);
+    batch.update(doc(db, "ordini", ordineId), { prodotti });
+    ordine.prodotti.forEach(p => {
+      if (!p.ricevuto && p.idProdotto) {
+        batch.update(doc(db, "prodotti", p.idProdotto), {
+          dataConsegnaPrevista: dataConsegna || null
+        });
+      }
+    });
+    await batch.commit();
   } catch (err) { console.error("Errore applica data a tutti:", err); }
 }
 
@@ -460,9 +478,11 @@ async function registraArrivo(productId, orderId, itemIndex, quantity, unita, no
       const attualeDisp     = prodSnap.data().quantitaDisponibile ?? 0;
       const attualeOrdinato = prodSnap.data().quantitaOrdinata    ?? 0;
 
+      const nuovoOrdinato = Math.max(0, attualeOrdinato - quantity);
       t.update(productRef, {
-        quantitaDisponibile: attualeDisp + quantitaDaCaricare,
-        quantitaOrdinata:    Math.max(0, attualeOrdinato - quantity)
+        quantitaDisponibile:  attualeDisp + quantitaDaCaricare,
+        quantitaOrdinata:     nuovoOrdinato,
+        dataConsegnaPrevista: nuovoOrdinato === 0 ? null : prodSnap.data().dataConsegnaPrevista ?? null
       });
 
       const prodotti = [...ordSnap.data().prodotti];
@@ -489,7 +509,8 @@ async function cancellaOrdine(ordineId) {
     for (const p of ordineDoc.data().prodotti ?? []) {
       if (p.idProdotto && p.quantitaOrdinata > 0) {
         batch.update(doc(db, "prodotti", p.idProdotto), {
-          quantitaOrdinata: increment(-p.quantitaOrdinata)
+          quantitaOrdinata:    increment(-p.quantitaOrdinata),
+          dataConsegnaPrevista: null
         });
       }
     }
