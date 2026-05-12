@@ -1,10 +1,13 @@
 import {
-  collection, query, orderBy, onSnapshot,
-  doc, addDoc, updateDoc, deleteDoc
+  doc, onSnapshot, setDoc, updateDoc, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// Salviamo tutte le descrizioni in un unico documento dentro "anagrafica"
+// (collection già autorizzata nelle regole Firestore)
+const META_ID = '_meta_descrizioni';
+
 let db;
-let descrizioni = [];
+let descrizioniMap = {}; // { [nomeTipologia]: testoDescrizione }
 
 export function initEtichette(firestoreDb) {
   db = firestoreDb;
@@ -15,9 +18,8 @@ export function initEtichette(firestoreDb) {
 
 // ─── Caricamento real-time ────────────────────────────────────────
 function caricaDescrizioni() {
-  const q = query(collection(db, "descrizioni_tipologie"), orderBy("nome"));
-  onSnapshot(q, snap => {
-    descrizioni = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  onSnapshot(doc(db, "anagrafica", META_ID), snap => {
+    descrizioniMap = snap.exists() ? snap.data() : {};
     renderDescList();
   }, err => console.error("Errore descrizioni:", err));
 }
@@ -25,24 +27,25 @@ function caricaDescrizioni() {
 function renderDescList() {
   const el = document.getElementById('desc-list');
   if (!el) return;
-  if (descrizioni.length === 0) {
+  const nomi = Object.keys(descrizioniMap).sort((a, b) => a.localeCompare(b, 'it'));
+  if (nomi.length === 0) {
     el.innerHTML = '<p class="empty-state" style="font-size:.8rem;margin-top:.5rem">Nessuna descrizione salvata.</p>';
     return;
   }
-  el.innerHTML = descrizioni.map(d => `
+  el.innerHTML = nomi.map(nome => `
     <div class="desc-item">
       <div class="desc-item-header">
-        <strong class="desc-item-nome">${d.nome}</strong>
+        <strong class="desc-item-nome">${nome}</strong>
         <div style="display:flex;gap:.25rem">
-          <button class="btn-icon action-btn-edit edit-desc-btn" data-id="${d.id}" title="Modifica">
+          <button class="btn-icon action-btn-edit edit-desc-btn" data-nome="${nome}" title="Modifica">
             <i class="fas fa-pen"></i>
           </button>
-          <button class="btn-icon action-btn-del delete-desc-btn" data-id="${d.id}" title="Elimina">
+          <button class="btn-icon action-btn-del delete-desc-btn" data-nome="${nome}" title="Elimina">
             <i class="fas fa-trash"></i>
           </button>
         </div>
       </div>
-      <p class="desc-item-text">${d.descrizione}</p>
+      <p class="desc-item-text">${descrizioniMap[nome]}</p>
     </div>
   `).join('');
 }
@@ -60,14 +63,7 @@ async function salvaDescrizione(e) {
   status.textContent = 'Salvataggio…';
 
   try {
-    const existing = descrizioni.find(
-      d => d.nome.trim().toLowerCase() === nome.toLowerCase()
-    );
-    if (existing) {
-      await updateDoc(doc(db, "descrizioni_tipologie", existing.id), { nome, descrizione: testo });
-    } else {
-      await addDoc(collection(db, "descrizioni_tipologie"), { nome, descrizione: testo });
-    }
+    await setDoc(doc(db, "anagrafica", META_ID), { [nome]: testo }, { merge: true });
     status.style.color = 'var(--success)';
     status.textContent = `✓ Descrizione per "${nome}" salvata.`;
     e.target.reset();
@@ -83,26 +79,25 @@ async function salvaDescrizione(e) {
 function gestisciClickDesc(e) {
   const btn = e.target.closest('button');
   if (!btn) return;
-  const id = btn.dataset.id;
+  const nome = btn.dataset.nome;
   if (btn.classList.contains('edit-desc-btn')) {
-    const d = descrizioni.find(d => d.id === id);
-    if (!d) return;
-    document.getElementById('desc-nome').value  = d.nome;
-    document.getElementById('desc-testo').value = d.descrizione;
+    document.getElementById('desc-nome').value  = nome;
+    document.getElementById('desc-testo').value = descrizioniMap[nome] ?? '';
     document.getElementById('desc-nome').focus();
     document.getElementById('desc-status').textContent = '';
   } else if (btn.classList.contains('delete-desc-btn')) {
-    const d = descrizioni.find(d => d.id === id);
-    if (!d || !confirm(`Eliminare la descrizione per "${d.nome}"?`)) return;
-    deleteDoc(doc(db, "descrizioni_tipologie", id)).catch(console.error);
+    if (!confirm(`Eliminare la descrizione per "${nome}"?`)) return;
+    updateDoc(doc(db, "anagrafica", META_ID), { [nome]: deleteField() }).catch(console.error);
   }
 }
 
 // ─── API pubblica ─────────────────────────────────────────────────
 export function getDescrizione(nomeTipologia) {
-  return descrizioni.find(
-    d => d.nome?.trim().toLowerCase() === nomeTipologia?.trim().toLowerCase()
-  ) ?? null;
+  if (!nomeTipologia) return null;
+  const key = Object.keys(descrizioniMap).find(
+    k => k.trim().toLowerCase() === nomeTipologia.trim().toLowerCase()
+  );
+  return key ? { nome: key, descrizione: descrizioniMap[key] } : null;
 }
 
 let _prodottoCorrente = null;
