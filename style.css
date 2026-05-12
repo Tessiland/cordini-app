@@ -506,8 +506,9 @@ input[type="file"] {
 }
 
 .product-card-code {
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--warning);
   font-family: 'Courier New', monospace;
   margin-top: 0.15rem;
 }
