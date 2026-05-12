@@ -167,9 +167,15 @@ async function creaOrdine(fornitore, prodotti) {
 }
 
 function mostraTestoEmail(fornitore, prodotti) {
-  const data  = new Date().toLocaleDateString('it-IT');
+  const ora   = new Date();
+  const data  = ora.toLocaleDateString('it-IT');
   const righe = prodotti
-    .map(p => `• ${p.codice} — ${p.nome} — ${p.quantitaOrdinata} ${p.unita}`)
+    .map(p => {
+      const dataConsegna = p.dataConsegna
+        ? ` (consegna: ${new Date(p.dataConsegna + 'T00:00:00').toLocaleDateString('it-IT')})`
+        : '';
+      return `• ${p.codice} — ${p.nome} — ${p.quantitaOrdinata} ${p.unita}${dataConsegna}`;
+    })
     .join('\n');
 
   const testo = `Ordine Tessiland — ${data}
@@ -183,6 +189,18 @@ Cordiali saluti
 Tessiland`;
 
   document.getElementById('email-testo').value = testo;
+
+  // Download automatico nella cartella Output con naming yyyymmdd_fornitore.txt
+  const yyyymmdd    = ora.toISOString().slice(0, 10).replace(/-/g, '');
+  const nomeFile    = `${yyyymmdd}_${fornitore.replace(/[^a-zA-Z0-9À-ÿ\s]/g, '').trim().replace(/\s+/g, '_')}.txt`;
+  const blob        = new Blob([testo], { type: 'text/plain;charset=utf-8' });
+  const url         = URL.createObjectURL(blob);
+  const a           = document.createElement('a');
+  a.href            = url;
+  a.download        = nomeFile;
+  a.click();
+  URL.revokeObjectURL(url);
+
   openModal('modal-email');
 }
 
