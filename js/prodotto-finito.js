@@ -203,9 +203,10 @@ function creaRigaColore(p) {
     ? p.coloriComponenti[0].nomeColore
     : (p.colore || p.nome || '—');
 
+  const isRoccatura = p.tipoLavorazione === 'roccatura';
   const mixHtml = p.coloriComponenti?.length > 1
     ? `<span class="pf-mix">${p.coloriComponenti.map(c => `${c.percentuale}% ${c.nomeColore}`).join(' · ')}</span>`
-    : (!isStock && !p.coloriComponenti?.length && p.colore)
+    : (!isStock && !isRoccatura && !p.coloriComponenti?.length && p.colore)
       ? `<span class="pf-mix pf-mix-legacy">⚠ da rimappare</span>`
       : '';
 
@@ -325,9 +326,10 @@ function apriModifica(id) {
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
   if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
-  const isStock = p.fornitore === 'STOCK';
+  const isStock     = p.fornitore === 'STOCK';
+  const isRoccatura = (p.tipoLavorazione ?? 'cordini') === 'roccatura';
   impostaModalitaFornitore(isStock);
-  if (isStock) {
+  if (isStock || isRoccatura) {
     document.getElementById('pf-colore-stock').value = p.colore ?? '';
     document.getElementById('pf-colore-originale').classList.add('hidden');
   } else {
