@@ -42,7 +42,12 @@ async function main() {
     try { initCatalogo(db, user.email); } catch (e) { console.error('initCatalogo:', e); }
     try { initOrdiniProduzione(db, user.email); } catch (e) { console.error('initOrdiniProduzione:', e); }
     try { initOrdiniFornitori(db); } catch (e) { console.error('initOrdiniFornitori:', e); }
-    try { initEtichette(db); } catch (e) { console.error('initEtichette:', e); }
+    try {
+      initEtichette(db);
+      document.getElementById('conferma-stampa-btn').addEventListener('click', () => {
+        import('./etichette.js').then(({ confermaPrint }) => confermaPrint());
+      });
+    } catch (e) { console.error('initEtichette:', e); }
   });
 }
 

@@ -74,7 +74,7 @@ async function salvaDescrizione(e) {
   } catch (err) {
     console.error(err);
     status.style.color = 'var(--danger)';
-    status.textContent = 'Errore nel salvataggio.';
+    status.textContent = `Errore: ${err.message}`;
   } finally {
     btn.disabled = false;
   }
@@ -105,22 +105,43 @@ export function getDescrizione(nomeTipologia) {
   ) ?? null;
 }
 
+let _prodottoCorrente = null;
+
 export function stampaEtichetta(prodotto) {
   const descObj = getDescrizione(prodotto.nome);
   if (!descObj) {
-    alert(`Nessuna descrizione trovata per "${prodotto.nome}".\nAggiungila nel Catalogo → Descrizioni Tipologie, poi riprova.`);
+    alert(`Nessuna descrizione per "${prodotto.nome}".\nAggiungila nel Catalogo → Descrizioni Tipologie, poi riprova.`);
     return;
   }
-  eseguiStampa(prodotto, descObj.descrizione);
-}
 
-function eseguiStampa(prodotto, descrizione) {
+  _prodottoCorrente = { ...prodotto, _descrizione: descObj.descrizione };
+
   const colore = prodotto.coloriComponenti?.length === 1
     ? prodotto.coloriComponenti[0].nomeColore
     : (prodotto.colore || '—');
 
-  const area = document.getElementById('print-area');
-  area.innerHTML = `
+  document.getElementById('stampa-preview').textContent = `${prodotto.nome} — ${colore}`;
+  document.getElementById('stampa-qty').value = prodotto.quantitaRocche > 0 ? prodotto.quantitaRocche : 1;
+
+  import('./nav.js').then(({ openModal }) => openModal('modal-stampa-etichette'));
+}
+
+// Chiamato dal bottone "Stampa" nel modal
+export function confermaPrint() {
+  if (!_prodottoCorrente) return;
+  const qty = Math.max(1, parseInt(document.getElementById('stampa-qty').value, 10) || 1);
+  import('./nav.js').then(({ closeModal }) => {
+    closeModal('modal-stampa-etichette');
+    eseguiStampa(_prodottoCorrente, _prodottoCorrente._descrizione, qty);
+    _prodottoCorrente = null;
+  });
+}
+
+function creaLabelHtml(prodotto, descrizione) {
+  const colore = prodotto.coloriComponenti?.length === 1
+    ? prodotto.coloriComponenti[0].nomeColore
+    : (prodotto.colore || '—');
+  return `
     <div class="print-label">
       <div class="print-label-top">
         <span class="print-label-tipo">${prodotto.nome ?? '—'}</span>
@@ -131,22 +152,28 @@ function eseguiStampa(prodotto, descrizione) {
       ${prodotto.sku
         ? `<div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
         : `<div class="print-label-partita">SKU: n.d.</div>`}
-    </div>
-  `;
+    </div>`;
+}
 
+function eseguiStampa(prodotto, descrizione, qty) {
+  const area = document.getElementById('print-area');
+
+  // Genera N copie separate da page-break
+  area.innerHTML = Array.from({ length: qty }, (_, i) =>
+    creaLabelHtml(prodotto, descrizione) +
+    (i < qty - 1 ? '<div class="print-label-break"></div>' : '')
+  ).join('');
+
+  // Genera un barcode per ogni SVG
   if (prodotto.sku && window.JsBarcode) {
-    JsBarcode('.print-barcode-svg', prodotto.sku, {
-      format:       'CODE128',
-      width:        1.2,
-      height:       20,
-      displayValue: true,
-      fontSize:     7,
-      margin:       0,
-      textMargin:   1
+    area.querySelectorAll('.print-barcode-svg').forEach(svg => {
+      JsBarcode(svg, prodotto.sku, {
+        format: 'CODE128', width: 1.2, height: 20,
+        displayValue: true, fontSize: 7, margin: 0, textMargin: 1
+      });
     });
   }
 
-  // Override page size per etichetta
   let styleEl = document.getElementById('label-print-style');
   if (!styleEl) {
     styleEl = document.createElement('style');
@@ -159,9 +186,5 @@ function eseguiStampa(prodotto, descrizione) {
   `;
 
   window.print();
-
-  setTimeout(() => {
-    styleEl.textContent = '';
-    area.innerHTML = '';
-  }, 1500);
+  setTimeout(() => { styleEl.textContent = ''; area.innerHTML = ''; }, 1500);
 }

@@ -528,6 +528,31 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL — STAMPA ETICHETTE ===================== -->
+  <div id="modal-stampa-etichette" class="modal-overlay hidden">
+    <div class="modal-panel" style="max-width:320px">
+      <div class="modal-header">
+        <h3 class="modal-title">Stampa Etichette</h3>
+        <button class="btn-icon modal-close" data-modal="modal-stampa-etichette">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <p id="stampa-preview" style="font-size:.85rem;font-weight:600;color:var(--text-primary);margin-bottom:.875rem"></p>
+      <div class="field-group">
+        <label for="stampa-qty">Numero di etichette</label>
+        <input type="number" id="stampa-qty" min="1" max="999" value="1"
+               style="width:8rem;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);padding:.4rem .6rem;font-size:.9rem;font-family:var(--font)">
+        <span style="font-size:.78rem;color:var(--text-muted);margin-left:.4rem">(default = rocche in stock)</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary modal-close" data-modal="modal-stampa-etichette">Annulla</button>
+        <button type="button" id="conferma-stampa-btn" class="btn-primary">
+          <i class="fas fa-print"></i> Stampa
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Area di stampa — nascosta, visibile solo con window.print() -->
   <div id="print-area" style="display:none"></div>
 

@@ -2103,6 +2103,7 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   .print-label-partita { font-size: 5.5pt; margin-bottom: 0.5mm; }
   .print-label-barcode { margin-top: 1mm; }
   .print-barcode-svg { width: 100%; height: auto; display: block; }
+  .print-label-break { page-break-after: always; }
 }
 
 /* ================================================================
