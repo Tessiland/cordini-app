@@ -1,13 +1,9 @@
-import {
-  doc, onSnapshot, setDoc, updateDoc, deleteField
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// Salviamo tutte le descrizioni in un unico documento dentro "anagrafica"
-// (collection già autorizzata nelle regole Firestore)
-const META_ID = '_meta_descrizioni';
+// Le descrizioni vengono salvate in localStorage — nessun problema di permessi Firestore
+// e la stampa etichette avviene sempre dallo stesso dispositivo.
+const LS_KEY = 'cordini_descrizioni_tipologie';
 
 let db;
-let descrizioniMap = {}; // { [nomeTipologia]: testoDescrizione }
+let descrizioniMap = {};
 
 export function initEtichette(firestoreDb) {
   db = firestoreDb;
@@ -16,12 +12,12 @@ export function initEtichette(firestoreDb) {
   document.getElementById('desc-list').addEventListener('click', gestisciClickDesc);
 }
 
-// ─── Caricamento real-time ────────────────────────────────────────
+// ─── Caricamento da localStorage ─────────────────────────────────
 function caricaDescrizioni() {
-  onSnapshot(doc(db, "anagrafica", META_ID), snap => {
-    descrizioniMap = snap.exists() ? snap.data() : {};
-    renderDescList();
-  }, err => console.error("Errore descrizioni:", err));
+  try {
+    descrizioniMap = JSON.parse(localStorage.getItem(LS_KEY) ?? '{}');
+  } catch { descrizioniMap = {}; }
+  renderDescList();
 }
 
 function renderDescList() {
@@ -51,29 +47,19 @@ function renderDescList() {
 }
 
 // ─── Salva descrizione ────────────────────────────────────────────
-async function salvaDescrizione(e) {
+function salvaDescrizione(e) {
   e.preventDefault();
   const nome   = document.getElementById('desc-nome').value.trim();
   const testo  = document.getElementById('desc-testo').value.trim();
   const status = document.getElementById('desc-status');
-  const btn    = e.target.querySelector('[type="submit"]');
 
-  btn.disabled = true;
-  status.style.color = 'var(--text-secondary)';
-  status.textContent = 'Salvataggio…';
+  descrizioniMap[nome] = testo;
+  localStorage.setItem(LS_KEY, JSON.stringify(descrizioniMap));
+  renderDescList();
 
-  try {
-    await setDoc(doc(db, "anagrafica", META_ID), { [nome]: testo }, { merge: true });
-    status.style.color = 'var(--success)';
-    status.textContent = `✓ Descrizione per "${nome}" salvata.`;
-    e.target.reset();
-  } catch (err) {
-    console.error(err);
-    status.style.color = 'var(--danger)';
-    status.textContent = `Errore: ${err.message}`;
-  } finally {
-    btn.disabled = false;
-  }
+  status.style.color = 'var(--success)';
+  status.textContent = `✓ Descrizione per "${nome}" salvata.`;
+  e.target.reset();
 }
 
 function gestisciClickDesc(e) {
@@ -87,7 +73,9 @@ function gestisciClickDesc(e) {
     document.getElementById('desc-status').textContent = '';
   } else if (btn.classList.contains('delete-desc-btn')) {
     if (!confirm(`Eliminare la descrizione per "${nome}"?`)) return;
-    updateDoc(doc(db, "anagrafica", META_ID), { [nome]: deleteField() }).catch(console.error);
+    delete descrizioniMap[nome];
+    localStorage.setItem(LS_KEY, JSON.stringify(descrizioniMap));
+    renderDescList();
   }
 }
 
