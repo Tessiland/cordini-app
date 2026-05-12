@@ -1,60 +1,26 @@
 import {
-  collection, query, where, getDocs,
-  doc, addDoc, updateDoc, onSnapshot, deleteField
+  doc, setDoc, onSnapshot, updateDoc, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Descrizioni salvate in un documento speciale dentro "anagrafica" (già autorizzata).
-// Prima volta: addDoc → genera ID → salvato in localStorage come puntatore.
-// Dispositivi diversi: se localStorage è vuoto, trova il doc via query Firestore.
-const LS_ID_KEY = 'cordini_desc_meta_id';
+// Descrizioni salvate in tipologie/_descrizioni (collection già nelle regole Firestore).
+// setDoc con merge:true crea il doc se non esiste, altrimenti lo aggiorna.
+const DESC_REF = (db) => doc(db, "tipologie", "_descrizioni");
 
 let db;
-let metaDocId    = null;
 let descrizioniMap = {};
 
 export function initEtichette(firestoreDb) {
   db = firestoreDb;
   document.getElementById('desc-form').addEventListener('submit', salvaDescrizione);
   document.getElementById('desc-list').addEventListener('click', gestisciClickDesc);
-  initMetaDoc();
-}
 
-// ─── Inizializzazione documento meta ─────────────────────────────
-async function initMetaDoc() {
-  // 1. Cerca ID in localStorage (accesso veloce sul device corrente)
-  metaDocId = localStorage.getItem(LS_ID_KEY);
-
-  // 2. Se non trovato, cerca il doc su Firestore (altri device, o localStorage svuotato)
-  if (!metaDocId) {
-    try {
-      const snap = await getDocs(
-        query(collection(db, "anagrafica"), where("_tipo", "==", "descrizioni_tipologie"))
-      );
-      if (!snap.empty) {
-        metaDocId = snap.docs[0].id;
-        localStorage.setItem(LS_ID_KEY, metaDocId);
-      }
-    } catch (err) { console.error("Errore ricerca meta doc:", err); }
-  }
-
-  if (metaDocId) {
-    attivaListener();
-  } else {
-    renderDescList(); // primo avvio: lista vuota
-  }
-}
-
-function attivaListener() {
-  onSnapshot(doc(db, "anagrafica", metaDocId), snap => {
-    if (!snap.exists()) { descrizioniMap = {}; renderDescList(); return; }
-    const data = snap.data();
-    descrizioniMap = {};
-    Object.keys(data).forEach(k => { if (k !== '_tipo') descrizioniMap[k] = data[k]; });
+  onSnapshot(DESC_REF(db), snap => {
+    descrizioniMap = snap.exists() ? snap.data() : {};
     renderDescList();
   }, err => console.error("Errore listener descrizioni:", err));
 }
 
-// ─── Render lista ────────────────────────────────────────────────
+// ─── Render lista ─────────────────────────────────────────────────
 function renderDescList() {
   const el = document.getElementById('desc-list');
   if (!el) return;
@@ -94,18 +60,7 @@ async function salvaDescrizione(e) {
   status.textContent = 'Salvataggio…';
 
   try {
-    if (!metaDocId) {
-      // Prima volta: crea il documento con addDoc
-      const ref = await addDoc(collection(db, "anagrafica"), {
-        _tipo: 'descrizioni_tipologie',
-        [nome]: testo
-      });
-      metaDocId = ref.id;
-      localStorage.setItem(LS_ID_KEY, metaDocId);
-      attivaListener();
-    } else {
-      await updateDoc(doc(db, "anagrafica", metaDocId), { [nome]: testo });
-    }
+    await setDoc(DESC_REF(db), { [nome]: testo }, { merge: true });
     status.style.color = 'var(--success)';
     status.textContent = `✓ Descrizione per "${nome}" salvata.`;
     e.target.reset();
@@ -129,9 +84,7 @@ function gestisciClickDesc(e) {
     document.getElementById('desc-status').textContent = '';
   } else if (btn.classList.contains('delete-desc-btn')) {
     if (!confirm(`Eliminare la descrizione per "${nome}"?`)) return;
-    if (metaDocId) {
-      updateDoc(doc(db, "anagrafica", metaDocId), { [nome]: deleteField() }).catch(console.error);
-    }
+    updateDoc(DESC_REF(db), { [nome]: deleteField() }).catch(console.error);
   }
 }
 
@@ -152,7 +105,6 @@ export function stampaEtichetta(prodotto) {
     alert(`Nessuna descrizione per "${prodotto.nome}".\nAggiungila nel Catalogo → Descrizioni Tipologie, poi riprova.`);
     return;
   }
-
   _prodottoCorrente = { ...prodotto, _descrizione: descObj.descrizione };
 
   const colore = prodotto.coloriComponenti?.length === 1
