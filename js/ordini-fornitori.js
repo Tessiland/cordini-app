@@ -7,7 +7,8 @@ import { getProdotti } from './magazzino.js';
 import { openModal, closeModal } from './nav.js';
 
 let db;
-let ordiniStorico = [];
+let ordiniStorico  = [];
+let outputDirHandle = null;
 
 export function initOrdiniFornitori(firestoreDb) {
   db = firestoreDb;
@@ -17,9 +18,94 @@ export function initOrdiniFornitori(firestoreDb) {
   document.getElementById('list-storico').addEventListener('click', gestisciClickStorico);
   document.getElementById('list-storico').addEventListener('change', gestisciChangeStorico);
   document.getElementById('copy-email-btn').addEventListener('click', copiaTestoEmail);
+  document.getElementById('collega-output-btn').addEventListener('click', selezionaCartellaOutput);
 
+  ripristinaCartellaOutput();
   generaProposte();
   caricaStorico();
+}
+
+// ─── Cartella Output (File System Access API) ─────────────────────
+async function ripristinaCartellaOutput() {
+  try {
+    const handle = await leggiHandleDaIDB();
+    if (!handle) return;
+    const perm = await handle.requestPermission({ mode: 'readwrite' });
+    if (perm === 'granted') { outputDirHandle = handle; aggiornaStatoOutput(); }
+  } catch { /* silenzioso */ }
+}
+
+async function selezionaCartellaOutput() {
+  if (!window.showDirectoryPicker) {
+    alert('Funzione disponibile solo su Chrome o Edge. Su Safari usa il bottone "Copia testo" nel modal.');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    outputDirHandle = handle;
+    await salvaHandleInIDB(handle);
+    aggiornaStatoOutput();
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error("Errore selezione cartella:", e);
+  }
+}
+
+function aggiornaStatoOutput() {
+  const btn    = document.getElementById('collega-output-btn');
+  const status = document.getElementById('output-folder-status');
+  if (outputDirHandle) {
+    btn.innerHTML    = `<i class="fas fa-folder-open"></i> ${outputDirHandle.name}`;
+    btn.style.color  = 'var(--success)';
+    status.textContent = '';
+  } else {
+    btn.innerHTML    = '<i class="fas fa-folder"></i> Collega cartella Output';
+    btn.style.color  = '';
+    status.textContent = 'Nessuna cartella collegata — gli ordini non verranno salvati automaticamente.';
+  }
+}
+
+async function salvaOrdineInOutput(fornitore, testo) {
+  if (!outputDirHandle) return;
+  try {
+    const ora      = new Date();
+    const yyyymmdd = ora.toISOString().slice(0, 10).replace(/-/g, '');
+    const nome     = fornitore.trim().replace(/[^a-zA-Z0-9À-ÿ]/g, '_').replace(/_+/g, '_');
+    const nomeFile = `${yyyymmdd}_${nome}.txt`;
+    const file     = await outputDirHandle.getFileHandle(nomeFile, { create: true });
+    const writable = await file.createWritable();
+    await writable.write(testo);
+    await writable.close();
+  } catch (err) {
+    console.error("Errore salvataggio Output:", err);
+  }
+}
+
+// ─── IndexedDB per persistere il directory handle ─────────────────
+function apriIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('cordini-fs', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess  = e => resolve(e.target.result);
+    req.onerror    = () => reject(req.error);
+  });
+}
+async function salvaHandleInIDB(handle) {
+  const db = await apriIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(handle, 'output');
+    tx.oncomplete = resolve;
+    tx.onerror    = () => reject(tx.error);
+  });
+}
+async function leggiHandleDaIDB() {
+  const db = await apriIDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction('handles', 'readonly');
+    const req = tx.objectStore('handles').get('output');
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror   = () => resolve(null);
+  });
 }
 
 // Chiamata da app.js quando si naviga nella sezione Ordini, per aggiornare le proposte
@@ -158,7 +244,9 @@ async function creaOrdine(fornitore, prodotti) {
     });
 
     await batch.commit();
-    mostraTestoEmail(fornitore, prodotti);
+    const testo = generaTestoOrdine(fornitore, prodotti);
+    await salvaOrdineInOutput(fornitore, testo);
+    mostraTestoEmail(testo);
     generaProposte();
   } catch (err) {
     console.error("Errore creazione ordine:", err);
@@ -166,9 +254,8 @@ async function creaOrdine(fornitore, prodotti) {
   }
 }
 
-function mostraTestoEmail(fornitore, prodotti) {
-  const ora   = new Date();
-  const data  = ora.toLocaleDateString('it-IT');
+function generaTestoOrdine(fornitore, prodotti) {
+  const data  = new Date().toLocaleDateString('it-IT');
   const righe = prodotti
     .map(p => {
       const dataConsegna = p.dataConsegna
@@ -178,7 +265,7 @@ function mostraTestoEmail(fornitore, prodotti) {
     })
     .join('\n');
 
-  const testo = `Ordine Tessiland — ${data}
+  return `Ordine Tessiland — ${data}
 
 Spett. ${fornitore},
 
@@ -187,20 +274,10 @@ ${righe}
 
 Cordiali saluti
 Tessiland`;
+}
 
+function mostraTestoEmail(testo) {
   document.getElementById('email-testo').value = testo;
-
-  // Download automatico nella cartella Output con naming yyyymmdd_fornitore.txt
-  const yyyymmdd    = ora.toISOString().slice(0, 10).replace(/-/g, '');
-  const nomeFile    = `${yyyymmdd}_${fornitore.replace(/[^a-zA-Z0-9À-ÿ\s]/g, '').trim().replace(/\s+/g, '_')}.txt`;
-  const blob        = new Blob([testo], { type: 'text/plain;charset=utf-8' });
-  const url         = URL.createObjectURL(blob);
-  const a           = document.createElement('a');
-  a.href            = url;
-  a.download        = nomeFile;
-  a.click();
-  URL.revokeObjectURL(url);
-
   openModal('modal-email');
 }
 
