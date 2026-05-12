@@ -38,5 +38,6 @@ export async function aggiornaDatalists() {
   if (dl('tipologie-datalist'))   dl('tipologie-datalist').innerHTML   = sort(nomiSet).map(n => `<option value="${n}">`).join('');
   if (dl('colori-datalist'))      dl('colori-datalist').innerHTML      = sort(coloriSet).map(c => `<option value="${c}">`).join('');
   if (dl('fornitori-pf-datalist')) dl('fornitori-pf-datalist').innerHTML =
-    `<option value="STOCK">` + sort(fornSet).filter(f => f !== 'STOCK').map(f => `<option value="${f}">`).join('');
+    `<option value="IBRIDI"><option value="STOCK">` +
+    sort(fornSet).filter(f => f !== 'STOCK' && f !== 'IBRIDI').map(f => `<option value="${f}">`).join('');
 }

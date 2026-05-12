@@ -8,6 +8,7 @@ import { initProdottoFinito, setOperatorePF } from './prodotto-finito.js';
 import { initCatalogo }                       from './catalogo.js';
 import { initOrdiniProduzione }               from './ordini-produzione.js';
 import { initOrdiniFornitori }               from './ordini-fornitori.js';
+import { initEtichette }                     from './etichette.js';
 
 async function main() {
   let firebase;
@@ -41,6 +42,7 @@ async function main() {
     try { initCatalogo(db, user.email); } catch (e) { console.error('initCatalogo:', e); }
     try { initOrdiniProduzione(db, user.email); } catch (e) { console.error('initOrdiniProduzione:', e); }
     try { initOrdiniFornitori(db); } catch (e) { console.error('initOrdiniFornitori:', e); }
+    try { initEtichette(db); } catch (e) { console.error('initEtichette:', e); }
   });
 }
 

@@ -228,6 +228,32 @@
         <div id="list-catalogo" class="catalogo-list">
           <p class="empty-state">Nessun prodotto in catalogo.</p>
         </div>
+
+        <!-- Descrizioni Tipologie (per etichette) -->
+        <div class="upload-card" style="margin-top:1rem">
+          <h3><i class="fas fa-tag" style="color:var(--accent);margin-right:.4rem"></i>Descrizioni Tipologie</h3>
+          <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.875rem">
+            Testo che appare sull'etichetta del prodotto finito, associato al tipo di cordino.
+          </p>
+          <form id="desc-form">
+            <div class="field-group">
+              <label for="desc-nome">Tipo Cordino</label>
+              <input type="text" id="desc-nome" list="tipologie-datalist"
+                     placeholder="Es. Ternes, Thai Sublime…" required autocomplete="off">
+            </div>
+            <div class="field-group">
+              <label for="desc-testo">Descrizione (testo integrale per etichetta)</label>
+              <textarea id="desc-testo" rows="4" required
+                style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);padding:.75rem;font-family:var(--font);font-size:.85rem;resize:vertical;line-height:1.5"
+                placeholder="Cordino in misto Cotone con aspetto circolare…"></textarea>
+            </div>
+            <button type="submit" class="btn-primary btn-sm">
+              <i class="fas fa-floppy-disk"></i> Salva Descrizione
+            </button>
+            <p id="desc-status" style="font-size:.8rem;margin-top:.5rem;min-height:1.2em"></p>
+          </form>
+          <div id="desc-list"></div>
+        </div>
       </section>
 
     </main>
@@ -506,6 +532,7 @@
   <div id="print-area" style="display:none"></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

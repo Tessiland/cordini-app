@@ -613,6 +613,7 @@ input[type="file"] {
 .tag-ordered    { background: var(--accent-dim);   color: var(--accent);   }
 .tag-delivery   { background: var(--success-dim);  color: var(--success);  }
 .tag-spedizione { background: var(--warning-dim);  color: var(--warning);  }
+.tag-ibrido     { background: rgba(168,85,247,.15); color: #a855f7;        }
 .tag-alert    { background: var(--danger-dim);  color: var(--danger); }
 .tag-warning  { background: var(--warning-dim); color: var(--warning); }
 
@@ -2047,6 +2048,61 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   padding: .4rem;
   background: var(--success-dim);
   border-top: 1px solid rgba(34,197,94,.15);
+}
+
+/* ================================================================
+   DESCRIZIONI TIPOLOGIE (Catalogo)
+================================================================ */
+
+.desc-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: .625rem .75rem;
+  margin-top: .5rem;
+}
+.desc-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .3rem;
+}
+.desc-item-nome {
+  font-size: .85rem;
+  color: var(--accent);
+}
+.desc-item-text {
+  font-size: .78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ================================================================
+   STAMPA ETICHETTE (50×20mm)
+================================================================ */
+
+@media print {
+  .print-label {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000;
+    width: 48mm;
+    padding: 0;
+    line-height: 1.25;
+  }
+  .print-label-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 0.3mm solid #000;
+    padding-bottom: 0.5mm;
+    margin-bottom: 0.8mm;
+  }
+  .print-label-tipo  { font-size: 6.5pt; font-weight: 700; }
+  .print-label-colore { font-size: 6.5pt; font-weight: 700; }
+  .print-label-desc  { font-size: 5pt; line-height: 1.3; margin-bottom: 0.8mm; }
+  .print-label-partita { font-size: 5.5pt; margin-bottom: 0.5mm; }
+  .print-label-barcode { margin-top: 1mm; }
+  .print-barcode-svg { width: 100%; height: auto; display: block; }
 }
 
 /* ================================================================

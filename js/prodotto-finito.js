@@ -6,6 +6,7 @@ import { openModal, closeModal } from './nav.js';
 import { aggiornaDatalists } from './tipologie.js';
 import { getProdotti } from './magazzino.js';
 import { getFornitori } from './fornitori.js';
+import { stampaEtichetta } from './etichette.js';
 
 let db;
 let operatoreCorrente = 'Operatori';
@@ -43,6 +44,8 @@ function impostaModalitaFornitore(isStock) {
   document.getElementById('pf-colore-stock-group').classList.toggle('hidden', !isStock);
   document.getElementById('pf-colori-section').classList.toggle('hidden', isStock);
 }
+
+// IBRIDI usa la stessa UI dei cordini normali (isStock = false)
 
 // stato apertura accordion annidato
 const statiAperti = { fornitori: new Set(), tipologie: new Set() };
@@ -176,9 +179,11 @@ function creaRigaColore(p) {
   if (rocche <= soglia && rocche > 0) stockClass = 'warning';
   if (rocche === 0)                   stockClass = 'danger';
 
-  const tipoBadge = (p.tipoLavorazione === 'roccatura')
+  const tipoBadge = p.tipoLavorazione === 'roccatura'
     ? `<span class="tag tag-warning" style="font-size:.6rem">ROCCATURA</span>`
-    : '';
+    : p.fornitore === 'IBRIDI'
+      ? `<span class="tag tag-ibrido" style="font-size:.6rem">IBRIDO</span>`
+      : '';
 
   const isStock = p.fornitore === 'STOCK';
 
@@ -219,6 +224,9 @@ function creaRigaColore(p) {
       <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Elimina">
         <i class="fas fa-trash"></i>
       </button>
+      <button class="pf-row-menu print-label-btn" data-id="${p.id}" title="Stampa etichetta">
+        <i class="fas fa-tag"></i>
+      </button>
     </div>
   `;
 
@@ -239,6 +247,9 @@ function gestisciClick(e) {
     btn.disabled = true;
     const azione = btn.classList.contains('plus') ? 'increment' : 'decrement';
     aggiornaQuantita(id, azione).finally(() => { btn.disabled = false; });
+  } else if (btn.classList.contains('print-label-btn')) {
+    const p = tuttiProdottiFiniti.find(p => p.id === id);
+    if (p) stampaEtichetta(p);
   }
 }
 
