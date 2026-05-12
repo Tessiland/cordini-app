@@ -139,7 +139,7 @@ function creaLabelHtml(prodotto, descrizione) {
         <span class="print-label-colore">${colore}</span>
       </div>
       <div class="print-label-desc">${descrizione}</div>
-      <div class="print-label-partita">P.ta ${prodotto.partita || '—'}</div>
+      <div class="print-label-partita">${prodotto.partita || '—'}</div>
       ${prodotto.sku
         ? `<div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
         : ''}
