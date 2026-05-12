@@ -2085,24 +2085,44 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   .print-label {
     font-family: Arial, Helvetica, sans-serif;
     color: #000;
-    width: 48mm;
+    width: 49mm;
+    height: 18mm;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     padding: 0;
-    line-height: 1.25;
+    line-height: 1.2;
   }
   .print-label-top {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    border-bottom: 0.3mm solid #000;
-    padding-bottom: 0.5mm;
-    margin-bottom: 0.8mm;
+    border-bottom: 0.25mm solid #000;
+    padding-bottom: 0.4mm;
+    margin-bottom: 0.5mm;
+    flex-shrink: 0;
   }
-  .print-label-tipo  { font-size: 6.5pt; font-weight: 700; }
-  .print-label-colore { font-size: 6.5pt; font-weight: 700; }
-  .print-label-desc  { font-size: 5pt; line-height: 1.3; margin-bottom: 0.8mm; }
-  .print-label-partita { font-size: 5.5pt; margin-bottom: 0.5mm; }
-  .print-label-barcode { margin-top: 1mm; }
-  .print-barcode-svg { width: 100%; height: auto; display: block; }
+  .print-label-tipo   { font-size: 6pt; font-weight: 700; }
+  .print-label-colore { font-size: 6pt; font-weight: 700; }
+  .print-label-desc {
+    font-size: 4.5pt;
+    line-height: 1.25;
+    margin-bottom: 0.4mm;
+    overflow: hidden;
+    flex: 1;
+  }
+  .print-label-partita {
+    font-size: 5pt;
+    font-weight: 600;
+    margin-bottom: 0.4mm;
+    flex-shrink: 0;
+  }
+  .print-label-barcode { flex-shrink: 0; }
+  .print-barcode-svg {
+    display: block;
+    width: 49mm !important;
+    height: 8mm !important;
+  }
   .print-label-break { page-break-after: always; }
 }
 

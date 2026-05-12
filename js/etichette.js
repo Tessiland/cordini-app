@@ -139,10 +139,10 @@ function creaLabelHtml(prodotto, descrizione) {
         <span class="print-label-colore">${colore}</span>
       </div>
       <div class="print-label-desc">${descrizione}</div>
-      <div class="print-label-partita">Partita: ${prodotto.partita || '—'}</div>
+      <div class="print-label-partita">P.ta ${prodotto.partita || '—'}</div>
       ${prodotto.sku
         ? `<div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
-        : `<div class="print-label-partita">SKU: n.d.</div>`}
+        : ''}
     </div>`;
 }
 
@@ -156,9 +156,21 @@ function eseguiStampa(prodotto, descrizione, qty) {
   if (prodotto.sku && window.JsBarcode) {
     area.querySelectorAll('.print-barcode-svg').forEach(svg => {
       JsBarcode(svg, prodotto.sku, {
-        format: 'CODE128', width: 1.2, height: 20,
-        displayValue: true, fontSize: 7, margin: 0, textMargin: 1
+        format:       'CODE128',
+        width:        2,
+        height:       40,
+        displayValue: true,
+        fontSize:     8,
+        margin:       2,
+        textMargin:   2,
+        background:   '#ffffff',
+        lineColor:    '#000000'
       });
+      // Forza le dimensioni in mm dopo che JsBarcode ha impostato px
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.style.width  = '49mm';
+      svg.style.height = '8mm';
     });
   }
 
@@ -169,8 +181,14 @@ function eseguiStampa(prodotto, descrizione, qty) {
     document.head.appendChild(styleEl);
   }
   styleEl.textContent = `
-    @page { size: 50mm auto; margin: 1mm; }
-    #print-area { position: static !important; padding: 0 !important; font-size: 6pt !important; background: #fff; }
+    @page { size: 50mm 20mm; margin: 0.5mm; }
+    #print-area {
+      position: static !important;
+      padding: 0 !important;
+      width: 49mm !important;
+      overflow: hidden !important;
+      background: #fff;
+    }
   `;
 
   window.print();
