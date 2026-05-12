@@ -92,10 +92,11 @@ function creaCardProdotto(p) {
 
   const tags = [];
   if (ordinato > 0) {
-    const dataConsegna = p.dataConsegnaPrevista
-      ? new Date(p.dataConsegnaPrevista + 'T00:00:00').toLocaleDateString('it-IT')
+    tags.push(`<span class="tag tag-ordered"><i class="fas fa-truck"></i> Ordinato: ${ordinato}</span>`);
+    const dataSpedFmt = p.dataSpedizione
+      ? new Date(p.dataSpedizione + 'T00:00:00').toLocaleDateString('it-IT')
       : 'n.d.';
-    tags.push(`<span class="tag tag-ordered"><i class="fas fa-truck"></i> Ordinato: ${ordinato} · ${dataConsegna}</span>`);
+    tags.push(`<span class="tag tag-spedizione"><i class="fas fa-box"></i> Spedizione effettuata il: ${dataSpedFmt}</span>`);
   }
   if (p.notaConsegna)     tags.push(`<span class="tag tag-delivery"><i class="fas fa-calendar-check"></i> ${p.notaConsegna}</span>`);
 

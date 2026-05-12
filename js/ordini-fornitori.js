@@ -167,14 +167,14 @@ function creaCardProposta(fornitore, prodotti) {
           <th style="width:2.5rem"></th>
           <th>Codice</th><th>Nome</th>
           <th style="width:5rem">Qtà</th><th>Unità</th>
-          <th style="width:9rem">Consegna</th>
+          <th style="width:9rem">Data Spedizione</th>
         </tr></thead>
         <tbody>${righe}</tbody>
       </table>
     </div>
     <div class="proposta-footer">
       <span class="proposta-data-label">
-        <i class="fas fa-calendar-alt"></i> Data di default:
+        <i class="fas fa-calendar-alt"></i> Data spedizione di default:
       </span>
       <input type="date" class="proposta-data-default">
       <button class="btn-ghost btn-sm applica-data-btn">
@@ -215,7 +215,7 @@ function gestisciClickProposte(e) {
     nome:             row.querySelector('.td-nome').textContent,
     quantitaOrdinata: parseInt(row.querySelector('.order-qty-input').value, 10),
     unita:            row.querySelector('.td-unita').textContent.trim(),
-    dataConsegna:     row.querySelector('.row-data-consegna').value || null,
+    dataSpedizione:     row.querySelector('.row-data-consegna').value || null,
     ricevuto:         false
   }));
 
@@ -240,7 +240,7 @@ async function creaOrdine(fornitore, prodotti) {
     prodotti.forEach(p => {
       batch.update(doc(db, "prodotti", p.idProdotto), {
         quantitaOrdinata:    increment(p.quantitaOrdinata),
-        dataConsegnaPrevista: p.dataConsegna || null
+        dataSpedizione: p.dataSpedizione || null
       });
     });
 
@@ -259,10 +259,10 @@ function generaTestoOrdine(fornitore, prodotti) {
   const data  = new Date().toLocaleDateString('it-IT');
   const righe = prodotti
     .map(p => {
-      const dataConsegna = p.dataConsegna
-        ? ` (consegna: ${new Date(p.dataConsegna + 'T00:00:00').toLocaleDateString('it-IT')})`
+      const dataSpedizione = p.dataSpedizione
+        ? ` (consegna: ${new Date(p.dataSpedizione + 'T00:00:00').toLocaleDateString('it-IT')})`
         : '';
-      return `• ${p.codice} — ${p.nome} — ${p.quantitaOrdinata} ${p.unita}${dataConsegna}`;
+      return `• ${p.codice} — ${p.nome} — ${p.quantitaOrdinata} ${p.unita}${dataSpedizione}`;
     })
     .join('\n');
 
@@ -323,8 +323,8 @@ function creaCardStorico(ordine) {
   const tuttiRicevuti  = prodotti.length > 0 && prodotti.every(p => p.ricevuto);
 
   const prodottiHtml = prodotti.map((p, i) => {
-    const dataFmt = p.dataConsegna
-      ? new Date(p.dataConsegna + 'T00:00:00').toLocaleDateString('it-IT')
+    const dataFmt = p.dataSpedizione
+      ? new Date(p.dataSpedizione + 'T00:00:00').toLocaleDateString('it-IT')
       : '';
     const btnArrivo = p.ricevuto
       ? `<button class="arrivo-btn-completato" disabled>Caricata</button>`
@@ -341,11 +341,11 @@ function creaCardStorico(ordine) {
           <span class="storico-item-nome">${p.nome} (${p.codice ?? '—'}) — <strong>${p.quantitaOrdinata} ${p.unita}</strong></span>
           <div class="storico-item-data-row">
             <input type="date" class="storico-prodotto-data"
-              value="${p.dataConsegna ?? ''}"
+              value="${p.dataSpedizione ?? ''}"
               data-ordine-id="${ordine.id}"
               data-item-index="${i}"
               ${p.ricevuto ? 'disabled' : ''}
-              title="Data consegna prevista">
+              title="Data spedizione fornitore">
             ${dataFmt ? `<span class="storico-consegna-fmt">${dataFmt}</span>` : ''}
           </div>
         </div>
@@ -367,7 +367,7 @@ function creaCardStorico(ordine) {
       </button>
     </div>
     <div class="storico-bulk-date">
-      <span class="storico-consegna-label"><i class="fas fa-calendar-alt"></i> Data di default:</span>
+      <span class="storico-consegna-label"><i class="fas fa-calendar-alt"></i> Data spedizione di default:</span>
       <input type="date" class="storico-data-default">
       <button class="btn-ghost btn-sm applica-tutti-storico-btn" data-id="${ordine.id}">
         <i class="fas fa-check"></i> Applica a tutti
@@ -414,11 +414,11 @@ function gestisciChangeStorico(e) {
   );
 }
 
-async function aggiornaDataConsegnaProdotto(ordineId, itemIndex, dataConsegna) {
+async function aggiornaDataConsegnaProdotto(ordineId, itemIndex, dataSpedizione) {
   const ordine = ordiniStorico.find(o => o.id === ordineId);
   if (!ordine) return;
   const prodotti = ordine.prodotti.map((p, i) =>
-    i === itemIndex ? { ...p, dataConsegna: dataConsegna ?? null } : p
+    i === itemIndex ? { ...p, dataSpedizione: dataSpedizione ?? null } : p
   );
   try {
     const batch = writeBatch(db);
@@ -426,18 +426,18 @@ async function aggiornaDataConsegnaProdotto(ordineId, itemIndex, dataConsegna) {
     const item = ordine.prodotti[itemIndex];
     if (item?.idProdotto) {
       batch.update(doc(db, "prodotti", item.idProdotto), {
-        dataConsegnaPrevista: dataConsegna || null
+        dataSpedizione: dataSpedizione || null
       });
     }
     await batch.commit();
   } catch (err) { console.error("Errore salvataggio data consegna:", err); }
 }
 
-async function applicaDataATutti(ordineId, dataConsegna) {
+async function applicaDataATutti(ordineId, dataSpedizione) {
   const ordine = ordiniStorico.find(o => o.id === ordineId);
   if (!ordine) return;
   const prodotti = ordine.prodotti.map(p =>
-    p.ricevuto ? p : { ...p, dataConsegna: dataConsegna || null }
+    p.ricevuto ? p : { ...p, dataSpedizione: dataSpedizione || null }
   );
   try {
     const batch = writeBatch(db);
@@ -445,7 +445,7 @@ async function applicaDataATutti(ordineId, dataConsegna) {
     ordine.prodotti.forEach(p => {
       if (!p.ricevuto && p.idProdotto) {
         batch.update(doc(db, "prodotti", p.idProdotto), {
-          dataConsegnaPrevista: dataConsegna || null
+          dataSpedizione: dataSpedizione || null
         });
       }
     });
@@ -482,7 +482,7 @@ async function registraArrivo(productId, orderId, itemIndex, quantity, unita, no
       t.update(productRef, {
         quantitaDisponibile:  attualeDisp + quantitaDaCaricare,
         quantitaOrdinata:     nuovoOrdinato,
-        dataConsegnaPrevista: nuovoOrdinato === 0 ? null : prodSnap.data().dataConsegnaPrevista ?? null
+        dataSpedizione: nuovoOrdinato === 0 ? null : prodSnap.data().dataSpedizione ?? null
       });
 
       const prodotti = [...ordSnap.data().prodotti];
@@ -510,7 +510,7 @@ async function cancellaOrdine(ordineId) {
       if (p.idProdotto && p.quantitaOrdinata > 0) {
         batch.update(doc(db, "prodotti", p.idProdotto), {
           quantitaOrdinata:    increment(-p.quantitaOrdinata),
-          dataConsegnaPrevista: null
+          dataSpedizione: null
         });
       }
     }

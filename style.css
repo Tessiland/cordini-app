@@ -609,8 +609,9 @@ input[type="file"] {
   letter-spacing: 0.05em;
 }
 
-.tag-ordered  { background: var(--accent-dim);  color: var(--accent); }
-.tag-delivery { background: var(--success-dim); color: var(--success); }
+.tag-ordered    { background: var(--accent-dim);   color: var(--accent);   }
+.tag-delivery   { background: var(--success-dim);  color: var(--success);  }
+.tag-spedizione { background: var(--warning-dim);  color: var(--warning);  }
 .tag-alert    { background: var(--danger-dim);  color: var(--danger); }
 .tag-warning  { background: var(--warning-dim); color: var(--warning); }
 
