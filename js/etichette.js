@@ -1,25 +1,60 @@
-// Le descrizioni vengono salvate in localStorage — nessun problema di permessi Firestore
-// e la stampa etichette avviene sempre dallo stesso dispositivo.
-const LS_KEY = 'cordini_descrizioni_tipologie';
+import {
+  collection, query, where, getDocs,
+  doc, addDoc, updateDoc, onSnapshot, deleteField
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Descrizioni salvate in un documento speciale dentro "anagrafica" (già autorizzata).
+// Prima volta: addDoc → genera ID → salvato in localStorage come puntatore.
+// Dispositivi diversi: se localStorage è vuoto, trova il doc via query Firestore.
+const LS_ID_KEY = 'cordini_desc_meta_id';
 
 let db;
+let metaDocId    = null;
 let descrizioniMap = {};
 
 export function initEtichette(firestoreDb) {
   db = firestoreDb;
-  caricaDescrizioni();
   document.getElementById('desc-form').addEventListener('submit', salvaDescrizione);
   document.getElementById('desc-list').addEventListener('click', gestisciClickDesc);
+  initMetaDoc();
 }
 
-// ─── Caricamento da localStorage ─────────────────────────────────
-function caricaDescrizioni() {
-  try {
-    descrizioniMap = JSON.parse(localStorage.getItem(LS_KEY) ?? '{}');
-  } catch { descrizioniMap = {}; }
-  renderDescList();
+// ─── Inizializzazione documento meta ─────────────────────────────
+async function initMetaDoc() {
+  // 1. Cerca ID in localStorage (accesso veloce sul device corrente)
+  metaDocId = localStorage.getItem(LS_ID_KEY);
+
+  // 2. Se non trovato, cerca il doc su Firestore (altri device, o localStorage svuotato)
+  if (!metaDocId) {
+    try {
+      const snap = await getDocs(
+        query(collection(db, "anagrafica"), where("_tipo", "==", "descrizioni_tipologie"))
+      );
+      if (!snap.empty) {
+        metaDocId = snap.docs[0].id;
+        localStorage.setItem(LS_ID_KEY, metaDocId);
+      }
+    } catch (err) { console.error("Errore ricerca meta doc:", err); }
+  }
+
+  if (metaDocId) {
+    attivaListener();
+  } else {
+    renderDescList(); // primo avvio: lista vuota
+  }
 }
 
+function attivaListener() {
+  onSnapshot(doc(db, "anagrafica", metaDocId), snap => {
+    if (!snap.exists()) { descrizioniMap = {}; renderDescList(); return; }
+    const data = snap.data();
+    descrizioniMap = {};
+    Object.keys(data).forEach(k => { if (k !== '_tipo') descrizioniMap[k] = data[k]; });
+    renderDescList();
+  }, err => console.error("Errore listener descrizioni:", err));
+}
+
+// ─── Render lista ────────────────────────────────────────────────
 function renderDescList() {
   const el = document.getElementById('desc-list');
   if (!el) return;
@@ -47,19 +82,40 @@ function renderDescList() {
 }
 
 // ─── Salva descrizione ────────────────────────────────────────────
-function salvaDescrizione(e) {
+async function salvaDescrizione(e) {
   e.preventDefault();
   const nome   = document.getElementById('desc-nome').value.trim();
   const testo  = document.getElementById('desc-testo').value.trim();
   const status = document.getElementById('desc-status');
+  const btn    = e.target.querySelector('[type="submit"]');
 
-  descrizioniMap[nome] = testo;
-  localStorage.setItem(LS_KEY, JSON.stringify(descrizioniMap));
-  renderDescList();
+  btn.disabled = true;
+  status.style.color = 'var(--text-secondary)';
+  status.textContent = 'Salvataggio…';
 
-  status.style.color = 'var(--success)';
-  status.textContent = `✓ Descrizione per "${nome}" salvata.`;
-  e.target.reset();
+  try {
+    if (!metaDocId) {
+      // Prima volta: crea il documento con addDoc
+      const ref = await addDoc(collection(db, "anagrafica"), {
+        _tipo: 'descrizioni_tipologie',
+        [nome]: testo
+      });
+      metaDocId = ref.id;
+      localStorage.setItem(LS_ID_KEY, metaDocId);
+      attivaListener();
+    } else {
+      await updateDoc(doc(db, "anagrafica", metaDocId), { [nome]: testo });
+    }
+    status.style.color = 'var(--success)';
+    status.textContent = `✓ Descrizione per "${nome}" salvata.`;
+    e.target.reset();
+  } catch (err) {
+    console.error(err);
+    status.style.color = 'var(--danger)';
+    status.textContent = `Errore: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function gestisciClickDesc(e) {
@@ -73,9 +129,9 @@ function gestisciClickDesc(e) {
     document.getElementById('desc-status').textContent = '';
   } else if (btn.classList.contains('delete-desc-btn')) {
     if (!confirm(`Eliminare la descrizione per "${nome}"?`)) return;
-    delete descrizioniMap[nome];
-    localStorage.setItem(LS_KEY, JSON.stringify(descrizioniMap));
-    renderDescList();
+    if (metaDocId) {
+      updateDoc(doc(db, "anagrafica", metaDocId), { [nome]: deleteField() }).catch(console.error);
+    }
   }
 }
 
@@ -109,7 +165,6 @@ export function stampaEtichetta(prodotto) {
   import('./nav.js').then(({ openModal }) => openModal('modal-stampa-etichette'));
 }
 
-// Chiamato dal bottone "Stampa" nel modal
 export function confermaPrint() {
   if (!_prodottoCorrente) return;
   const qty = Math.max(1, parseInt(document.getElementById('stampa-qty').value, 10) || 1);
@@ -120,6 +175,7 @@ export function confermaPrint() {
   });
 }
 
+// ─── Stampa ──────────────────────────────────────────────────────
 function creaLabelHtml(prodotto, descrizione) {
   const colore = prodotto.coloriComponenti?.length === 1
     ? prodotto.coloriComponenti[0].nomeColore
@@ -140,14 +196,11 @@ function creaLabelHtml(prodotto, descrizione) {
 
 function eseguiStampa(prodotto, descrizione, qty) {
   const area = document.getElementById('print-area');
-
-  // Genera N copie separate da page-break
   area.innerHTML = Array.from({ length: qty }, (_, i) =>
     creaLabelHtml(prodotto, descrizione) +
     (i < qty - 1 ? '<div class="print-label-break"></div>' : '')
   ).join('');
 
-  // Genera un barcode per ogni SVG
   if (prodotto.sku && window.JsBarcode) {
     area.querySelectorAll('.print-barcode-svg').forEach(svg => {
       JsBarcode(svg, prodotto.sku, {
