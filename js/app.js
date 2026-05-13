@@ -9,6 +9,7 @@ import { initCatalogo }                       from './catalogo.js';
 import { initOrdiniProduzione }               from './ordini-produzione.js';
 import { initOrdiniFornitori }               from './ordini-fornitori.js';
 import { initEtichette }                     from './etichette.js';
+import { initBacheca }                       from './bacheca.js';
 
 async function main() {
   let firebase;
@@ -48,6 +49,7 @@ async function main() {
         import('./etichette.js').then(({ confermaPrint }) => confermaPrint());
       });
     } catch (e) { console.error('initEtichette:', e); }
+    try { initBacheca(db); } catch (e) { console.error('initBacheca:', e); }
   });
 }
 
