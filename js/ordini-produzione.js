@@ -1,6 +1,6 @@
 import {
   collection, query, orderBy, onSnapshot, doc, addDoc,
-  getDocs, runTransaction, serverTimestamp, deleteDoc
+  getDocs, updateDoc, runTransaction, serverTimestamp, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getProdottiFiniti } from './prodotto-finito.js';
 
@@ -28,6 +28,30 @@ function caricaOrdini() {
   }, err => console.error("Errore caricamento ordini produzione:", err));
 }
 
+// ─── Helper sort: tipologia → colore usando pfCache ───────────────
+function getSortKeys(item) {
+  const pfCache = getProdottiFiniti();
+  if (item.idProdottoFinito) {
+    const pf = pfCache.find(p => p.id === item.idProdottoFinito);
+    if (pf) return { tip: pf.nome ?? '', col: pf.colore ?? '' };
+  }
+  // Fallback: ultima parola = colore, resto = tipologia
+  const parts = (item.nome ?? '').split(' ');
+  const col   = parts.length > 1 ? parts[parts.length - 1] : '';
+  const tip   = parts.slice(0, -1).join(' ');
+  return { tip, col };
+}
+
+function sortItems(items) {
+  return [...items].sort((a, b) => {
+    const ka = getSortKeys(a);
+    const kb = getSortKeys(b);
+    const tipCmp = ka.tip.localeCompare(kb.tip, 'it', { sensitivity: 'base' });
+    if (tipCmp !== 0) return tipCmp;
+    return ka.col.localeCompare(kb.col, 'it', { sensitivity: 'base' });
+  });
+}
+
 // ─── Render ──────────────────────────────────────────────────────
 function renderOrdini() {
   const container = document.getElementById('prod-ordini-list');
@@ -51,11 +75,9 @@ function creaCardOrdine(ordine) {
   const statoClass = ordine.stato === 'chiuso' ? 'chiuso' : 'aperto';
   const statoLabel = ordine.stato === 'chiuso' ? 'CHIUSO' : 'APERTO';
 
-  // Mantieni indice originale prima di ordinare
+  // Mantieni indice originale prima di ordinare (per tipologia → colore)
   const itemsConIndice = items.map((item, origIdx) => ({ ...item, origIdx }));
-  const itemsOrdinati  = [...itemsConIndice].sort((a, b) =>
-    (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' })
-  );
+  const itemsOrdinati  = sortItems(itemsConIndice);
 
   const card = document.createElement('div');
   card.className = 'ordine-card';
@@ -147,6 +169,13 @@ function creaRigaItemHtml(item, origIdx, ordineId) {
     ? (pfItem.ubicazione?.trim() || 'non ubicato')
     : null;
 
+  // Qty editabile se non spuntato
+  const qtyHtml = item.spuntato
+    ? item.qtyRichiesta
+    : `<span class="qty-editable" data-action="edit-qty"
+          data-ordine-id="${ordineId}" data-index="${origIdx}"
+          title="Clicca per modificare la quantità">${item.qtyRichiesta} <i class="fas fa-pen-to-square qty-edit-icon"></i></span>`;
+
   return `
     <div class="ordine-item-row${item.spuntato ? ' spuntato' : ''}">
       <div class="col-nome">
@@ -154,7 +183,7 @@ function creaRigaItemHtml(item, origIdx, ordineId) {
         <div class="ordine-item-sku">${item.sku ?? ''}</div>
         ${ubicazione ? `<div class="ordine-item-ubicazione"><i class="fas fa-location-dot"></i> ${ubicazione}</div>` : ''}
       </div>
-      <div class="col-richiesta">${item.qtyRichiesta}</div>
+      <div class="col-richiesta">${qtyHtml}</div>
       <div class="col-disponibile ${colStock}">${stockHtml}</div>
       <div class="col-azione">${azioneHtml}</div>
     </div>
@@ -182,6 +211,8 @@ function gestisciClick(e) {
     el.disabled = true;
     spuntaItem(el.dataset.ordineId, Number(el.dataset.index))
       .finally(() => { el.disabled = false; });
+  } else if (action === 'edit-qty') {
+    apriEditQty(el, el.dataset.ordineId, Number(el.dataset.index));
   }
 }
 
@@ -202,6 +233,49 @@ async function eliminaOrdine(id) {
     console.error("Errore eliminazione ordine:", err);
     alert('Errore durante l\'eliminazione. Riprova.');
   }
+}
+
+// ─── Modifica qty richiesta inline ───────────────────────────────
+function apriEditQty(el, ordineId, itemIndex) {
+  const ordine = ordini.find(o => o.id === ordineId);
+  if (!ordine) return;
+  const item = ordine.items[itemIndex];
+  if (!item || item.spuntato) return;
+
+  const valoreOriginale = item.qtyRichiesta;
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.className = 'qty-edit-input';
+  input.value = valoreOriginale;
+  input.min = 1;
+
+  const conferma = async () => {
+    const nuova = Number(input.value);
+    if (!nuova || nuova < 1 || nuova === valoreOriginale) {
+      renderOrdini();
+      return;
+    }
+    const freshItems = ordine.items.map((it, i) =>
+      i === itemIndex ? { ...it, qtyRichiesta: nuova } : it
+    );
+    try {
+      await updateDoc(doc(db, "ordini_produzione", ordineId), { items: freshItems });
+    } catch (err) {
+      console.error("Errore modifica quantità:", err);
+      renderOrdini();
+    }
+  };
+
+  input.addEventListener('blur', conferma);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') renderOrdini();
+  });
+
+  el.replaceWith(input);
+  input.focus();
+  input.select();
 }
 
 // ─── Spunta item ─────────────────────────────────────────────────
@@ -227,20 +301,26 @@ async function spuntaItem(ordineId, itemIndex) {
       if (!pfSnap.exists())     throw new Error("Prodotto finito non trovato.");
       if (!ordineSnap.exists()) throw new Error("Ordine non trovato.");
 
-      const stockAttuale  = pfSnap.data().quantitaRocche ?? 0;
+      const pfData        = pfSnap.data();
+      const stockAttuale  = pfData.quantitaRocche ?? 0;
       const qtyConsegnata = Math.min(stockAttuale, item.qtyRichiesta);
       const nuovoStock    = stockAttuale - qtyConsegnata;
+      const nuovaPartita  = pfData.maiConsegnata ?? true;
 
-      // Aggiorna l'item nell'array (fresh dal DB)
       const freshItems = [...ordineSnap.data().items];
-      freshItems[itemIndex] = { ...freshItems[itemIndex], spuntato: true, qtyConsegnata };
+      freshItems[itemIndex] = {
+        ...freshItems[itemIndex],
+        spuntato:      true,
+        qtyConsegnata,
+        nuovaPartita
+      };
 
       const statoNuovo = freshItems.every(i => i.spuntato || !i.idProdottoFinito)
         ? 'chiuso'
         : 'aperto';
 
       t.update(ordineRef, { items: freshItems, stato: statoNuovo });
-      t.update(pfRef, { quantitaRocche: nuovoStock });
+      t.update(pfRef, { quantitaRocche: nuovoStock, maiConsegnata: false });
       t.set(doc(collection(db, "movimenti_pf")), {
         idProdotto:   item.idProdottoFinito,
         nomeProdotto: item.nome,
@@ -330,9 +410,20 @@ async function importaOrdine() {
       const esistenti       = await getDocs(collection(db, "ordini_produzione"));
       const numeriEsistenti = new Set(esistenti.docs.map(d => String(d.data().numero)));
 
-      // Mappa SKU → idProdottoFinito dalla cache
+      // Mappa SKU → prima partita valida (con stock se possibile, oldest createdAt)
       const pfCache = getProdottiFiniti();
-      const skuMap  = new Map(pfCache.filter(p => p.sku).map(p => [p.sku, p.id]));
+      const pfPerSku = {};
+      pfCache.filter(p => p.sku && !p.eliminato).forEach(p => {
+        if (!pfPerSku[p.sku]) pfPerSku[p.sku] = [];
+        pfPerSku[p.sku].push(p);
+      });
+      const skuMap = new Map();
+      for (const [sku, partite] of Object.entries(pfPerSku)) {
+        const conStock = partite.filter(p => (p.quantitaRocche ?? 0) > 0);
+        const gruppo   = conStock.length > 0 ? conStock : partite;
+        gruppo.sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
+        skuMap.set(sku, gruppo[0].id);
+      }
 
       let importati = 0;
       let duplicati = 0;
@@ -381,19 +472,18 @@ async function importaOrdine() {
 
 // ─── Stampa Lista (pre-picking) ───────────────────────────────────
 function stampaLista(ordine) {
-  const pfCache  = getProdottiFiniti();
-  const skuMap   = new Map(pfCache.filter(p => p.sku).map(p => [p.sku, p.quantitaRocche ?? 0]));
-  const dataFmt  = ordine.data
+  const pfCache = getProdottiFiniti();
+  const pfMap   = new Map(pfCache.map(p => [p.id, p]));
+  const dataFmt = ordine.data
     ? new Date(ordine.data + 'T00:00:00').toLocaleDateString('it-IT') : '—';
 
-  const items = [...(ordine.items ?? [])].sort((a, b) =>
-    (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' })
-  );
+  const items = sortItems(ordine.items ?? []);
 
   const righe = items.map(item => {
-    const stock = item.idProdottoFinito && skuMap.has(item.sku)
-      ? skuMap.get(item.sku)
-      : '—';
+    const pf    = item.idProdottoFinito ? pfMap.get(item.idProdottoFinito) : null;
+    const stock = pf !== undefined && pf !== null ? (pf.quantitaRocche ?? 0) : '—';
+    const ubicazione = pf?.ubicazione ?? '—';
+    const partita    = pf?.partita    ?? '—';
     const cls = stock === 0 ? 'print-danger'
       : (typeof stock === 'number' && stock < item.qtyRichiesta) ? 'print-warning' : '';
     return `<tr>
@@ -401,11 +491,13 @@ function stampaLista(ordine) {
       <td>${item.sku ?? '—'}</td>
       <td class="tc">${item.qtyRichiesta}</td>
       <td class="tc ${cls}">${stock}</td>
+      <td>${ubicazione}</td>
+      <td>${partita}</td>
       <td class="tc note-col"></td>
     </tr>`;
   }).join('');
 
-  const daProdurre = items.filter(i => !i.idProdottoFinito || skuMap.get(i.sku) === 0).length;
+  const daProdurre = items.filter(i => !i.idProdottoFinito || (pfMap.get(i.idProdottoFinito)?.quantitaRocche ?? 0) === 0).length;
 
   eseguiStampa(`
     <div class="print-doc">
@@ -422,6 +514,7 @@ function stampaLista(ordine) {
         <thead><tr>
           <th>Prodotto</th><th>SKU</th>
           <th class="tc">Richiesta</th><th class="tc">Disponibile</th>
+          <th>Ubicazione</th><th>Partita</th>
           <th class="tc">Note</th>
         </tr></thead>
         <tbody>${righe}</tbody>
@@ -435,34 +528,43 @@ function stampaLista(ordine) {
 
 // ─── Stampa Consegna (post-picking) ──────────────────────────────
 function stampaConsegna(ordine) {
+  const pfCache = getProdottiFiniti();
+  const pfMap   = new Map(pfCache.map(p => [p.id, p]));
   const dataFmt = ordine.data
     ? new Date(ordine.data + 'T00:00:00').toLocaleDateString('it-IT') : '—';
 
-  const items = [...(ordine.items ?? [])].sort((a, b) =>
-    (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' })
-  );
-
+  const items    = sortItems(ordine.items ?? []);
   const spuntati = items.filter(i => i.spuntato);
   const pendenti = items.filter(i => !i.spuntato);
 
   const righeSpuntati = spuntati.map(item => {
+    const pf      = item.idProdottoFinito ? pfMap.get(item.idProdottoFinito) : null;
+    const partita = pf?.partita ?? '—';
     const parziale = item.qtyConsegnata < item.qtyRichiesta;
+
+    const eliminatoBadge   = pf?.eliminato
+      ? `<span class="badge-eliminato">ELIMINATO</span>` : '';
+    const nuovaPartitaBadge = item.nuovaPartita
+      ? `<span class="badge-nuova-partita">&#9873; NUOVA PARTITA</span>` : '';
+
     return `<tr${parziale ? ' class="print-warning-row"' : ''}>
-      <td>${item.nome ?? '—'}</td>
+      <td>${item.nome ?? '—'} ${eliminatoBadge} ${nuovaPartitaBadge}</td>
       <td>${item.sku ?? '—'}</td>
       <td class="tc">${item.qtyRichiesta}</td>
       <td class="tc"><b>${item.qtyConsegnata}</b></td>
+      <td>${partita}</td>
       <td class="tc">${parziale ? 'PARZIALE' : '✓'}</td>
     </tr>`;
   }).join('');
 
   const righePendenti = pendenti.length > 0 ? `
-    <tr class="print-section-sep"><td colspan="5">NON EVASI / DA PRODURRE</td></tr>
+    <tr class="print-section-sep"><td colspan="6">NON EVASI / DA PRODURRE</td></tr>
     ${pendenti.map(item => `<tr class="print-danger-row">
       <td>${item.nome ?? '—'}</td>
       <td>${item.sku ?? '—'}</td>
       <td class="tc">${item.qtyRichiesta}</td>
       <td class="tc">—</td>
+      <td>—</td>
       <td class="tc">DA PRODURRE</td>
     </tr>`).join('')}
   ` : '';
@@ -482,7 +584,7 @@ function stampaConsegna(ordine) {
         <thead><tr>
           <th>Prodotto</th><th>SKU</th>
           <th class="tc">Richiesta</th><th class="tc">Consegnata</th>
-          <th class="tc">Stato</th>
+          <th>Partita</th><th class="tc">Stato</th>
         </tr></thead>
         <tbody>${righeSpuntati}${righePendenti}</tbody>
       </table>

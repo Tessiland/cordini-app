@@ -85,10 +85,16 @@
           <div class="filter-row">
             <input type="text" id="search-pf" class="input-search" placeholder="Cerca fornitore, cordino o colore…">
           </div>
-          <button id="add-pf-btn" class="btn-primary btn-sm" style="margin-bottom:.875rem">
-            <i class="fas fa-plus"></i> Aggiungi Prodotto Finito
-          </button>
+          <div style="display:flex;gap:.5rem;margin-bottom:.875rem;flex-wrap:wrap">
+            <button id="add-pf-btn" class="btn-primary btn-sm">
+              <i class="fas fa-plus"></i> Aggiungi Prodotto Finito
+            </button>
+            <button id="toggle-archivio-pf" class="btn-ghost btn-sm">
+              <i class="fas fa-archive"></i> Archivio Eliminati
+            </button>
+          </div>
           <div id="list-prodotto-finito" class="pf-accordion"></div>
+          <div id="list-archivio-pf" class="hidden"></div>
         </div>
       </section>
 
@@ -436,6 +442,10 @@
           <button type="button" id="add-colore-btn" class="btn-ghost" style="margin-top:.5rem">
             <i class="fas fa-plus"></i> Aggiungi colore (multicolore)
           </button>
+          <div id="pf-nome-multicolore-group" class="field-group hidden" style="margin-top:.75rem">
+            <label for="pf-nome-multicolore">Nome colore <span style="color:var(--text-muted);font-weight:400">(es. "Ananas" → verrà salvato come "Ananas Multicolore")</span></label>
+            <input type="text" id="pf-nome-multicolore" placeholder="Es. Ananas, Tramonto, Bosco…" autocomplete="off">
+          </div>
         </div>
         <div class="field-group">
           <label for="pf-ubicazione">Ubicazione</label>

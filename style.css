@@ -2216,3 +2216,146 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   height: 1.8rem;
 }
 .firma-label { font-size: 8pt; color: #666; text-align: center; }
+
+/* Forza tutto in nero per stampa lista e consegna */
+@media print {
+  .print-doc * { color: #000 !important; }
+  .print-warning, .print-danger { color: #000 !important; font-weight: 700; }
+  .print-warning-row td, .print-danger-row td { background: none !important; color: #000 !important; }
+  .print-meta { color: #000 !important; }
+  .print-footer { color: #000 !important; border-top-color: #000 !important; }
+  .badge-nuova-partita { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .badge-eliminato     { background: #555 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* Badge stampa */
+.badge-nuova-partita {
+  display: inline-block;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 7pt;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 2px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.badge-eliminato {
+  display: inline-block;
+  background: #555;
+  color: #fff;
+  font-size: 7pt;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* ── Multiple partite per colore ────────────────────────────── */
+.pf-colore-group {
+  border-left: 2px solid var(--border);
+  margin: .25rem 0 .25rem .5rem;
+}
+.pf-colore-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .4rem .75rem .25rem;
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid var(--border);
+}
+.pf-colore-group-header .pf-color-name {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.pf-colore-group-count {
+  font-size: .7rem;
+  color: var(--text-muted);
+}
+
+.pf-partita-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .45rem .75rem;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  gap: .5rem;
+}
+.pf-partita-row:last-child { border-bottom: none; }
+.pf-partita-info { flex: 1; min-width: 0; }
+.pf-partita-detail {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  flex-wrap: wrap;
+}
+.tag-prima-partita {
+  background: var(--accent);
+  color: #0f172a;
+  font-size: .55rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: .05em;
+}
+
+/* ── Archivio eliminati ──────────────────────────────────────── */
+.pf-archivio-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: .75rem;
+}
+.pf-archivio-section h4 {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .5rem;
+}
+.pf-archivio-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .45rem .75rem;
+  border-bottom: 1px solid var(--border);
+  opacity: .7;
+}
+.pf-archivio-nome {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.pf-archivio-meta {
+  font-size: .72rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: .5rem;
+  margin-top: .15rem;
+}
+
+/* ── Qty editabile negli ordini ──────────────────────────────── */
+.qty-editable {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  border-bottom: 1px dashed var(--text-muted);
+  padding-bottom: 1px;
+}
+.qty-edit-icon { font-size: .65rem; color: var(--text-muted); }
+.qty-edit-input {
+  width: 4.5rem;
+  text-align: center;
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: .85rem;
+}

@@ -12,6 +12,7 @@ let db;
 let operatoreCorrente = 'Operatori';
 let tuttiProdottiFiniti = [];
 let coloriComponentiForm = [];
+let archivioVisibile = false;
 
 export function setOperatorePF(email) {
   operatoreCorrente = email || 'Operatori';
@@ -29,6 +30,7 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
+  document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
@@ -57,8 +59,6 @@ function impostaModalitaFornitore(isStock) {
   document.getElementById('pf-roccatura-note').classList.toggle('hidden', !isRoccatura);
 }
 
-// IBRIDI usa la stessa UI dei cordini normali (isStock = false)
-
 // stato apertura accordion annidato
 const statiAperti = { fornitori: new Set(), tipologie: new Set() };
 
@@ -73,6 +73,7 @@ function carica() {
   onSnapshot(q, snap => {
     tuttiProdottiFiniti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
+    if (archivioVisibile) renderArchivio();
   }, err => console.error("Errore caricamento prodotti finiti:", err));
 }
 
@@ -81,11 +82,12 @@ function render() {
   const testo = document.getElementById('search-pf').value.toLowerCase();
 
   const filtrati = tuttiProdottiFiniti.filter(p =>
-    !testo ||
-    p.fornitore?.toLowerCase().includes(testo) ||
-    p.nome?.toLowerCase().includes(testo) ||
-    p.colore?.toLowerCase().includes(testo) ||
-    p.partita?.toLowerCase().includes(testo)
+    !p.eliminato &&
+    (!testo ||
+      p.fornitore?.toLowerCase().includes(testo) ||
+      p.nome?.toLowerCase().includes(testo) ||
+      p.colore?.toLowerCase().includes(testo) ||
+      p.partita?.toLowerCase().includes(testo))
   );
 
   const container = document.getElementById('list-prodotto-finito');
@@ -95,31 +97,31 @@ function render() {
     return;
   }
 
-  // Raggruppa: fornitore → tipologia → colori
+  // Raggruppa: fornitore → tipologia → colore → [partite]
   const perFornitore = {};
   filtrati.forEach(p => {
     const f = p.fornitore ?? '—';
     const t = p.nome      ?? '—';
+    const c = p.colore    ?? '—';
     if (!perFornitore[f]) perFornitore[f] = {};
-    if (!perFornitore[f][t]) perFornitore[f][t] = [];
-    perFornitore[f][t].push(p);
+    if (!perFornitore[f][t]) perFornitore[f][t] = {};
+    if (!perFornitore[f][t][c]) perFornitore[f][t][c] = [];
+    perFornitore[f][t][c].push(p);
   });
 
   container.innerHTML = '';
   const hasTesto = testo.length > 0;
-
   const sortIT = (a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' });
 
   Object.keys(perFornitore).sort(sortIT).forEach(fornitore => {
     const tipologie = perFornitore[fornitore];
-    const totale    = Object.values(tipologie).flat().length;
+    const totale = Object.values(tipologie).flatMap(t => Object.values(t)).flat().length;
     const fornAperto = statiAperti.fornitori.has(fornitore) || hasTesto;
 
     const block = document.createElement('div');
     block.className = `pf-fornitore-block${fornAperto ? ' open' : ''}`;
     block.dataset.fornitore = fornitore;
 
-    // Header fornitore
     const header = document.createElement('div');
     header.className = 'pf-fornitore-header';
     header.innerHTML = `
@@ -137,25 +139,29 @@ function render() {
     });
     block.appendChild(header);
 
-    // Body fornitore
     const body = document.createElement('div');
     body.className = 'pf-fornitore-body';
 
     Object.keys(tipologie).sort(sortIT).forEach(tipologia => {
-      const chiaveTip  = `${fornitore}__${tipologia}`;
-      const tipAperta  = statiAperti.tipologie.has(chiaveTip) || hasTesto;
-      const colori     = tipologie[tipologia];
+      const chiaveTip = `${fornitore}__${tipologia}`;
+      const tipAperta = statiAperti.tipologie.has(chiaveTip) || hasTesto;
+      const colori    = tipologie[tipologia];
+
+      const numColori  = Object.keys(colori).length;
+      const numPartite = Object.values(colori).flat().length;
+      const infoColori = numPartite > numColori
+        ? `${numColori} color${numColori === 1 ? 'e' : 'i'} · ${numPartite} partite`
+        : `${numColori} color${numColori === 1 ? 'e' : 'i'}`;
 
       const group = document.createElement('div');
       group.className = `pf-tipologia-group${tipAperta ? ' open' : ''}`;
 
-      // Header tipologia (cliccabile)
       const tipHeader = document.createElement('div');
       tipHeader.className = 'pf-tipologia-header';
       tipHeader.innerHTML = `
         <div class="pf-tipologia-name">${tipologia}</div>
         <div class="pf-tipologia-info">
-          <span class="pf-tipologia-count">${colori.length} color${colori.length === 1 ? 'e' : 'i'}</span>
+          <span class="pf-tipologia-count">${infoColori}</span>
           <i class="fas fa-chevron-right pf-tipologia-chevron"></i>
         </div>
       `;
@@ -167,14 +173,38 @@ function render() {
       });
       group.appendChild(tipHeader);
 
-      // Body tipologia — righe colori
       const tipBody = document.createElement('div');
       tipBody.className = 'pf-tipologia-body';
-      colori
-        .sort((a, b) => (a.colore ?? '').localeCompare(b.colore ?? '', 'it', { sensitivity: 'base' }))
-        .forEach(p => tipBody.appendChild(creaRigaColore(p)));
-      group.appendChild(tipBody);
 
+      Object.keys(colori).sort(sortIT).forEach(colore => {
+        const partite = [...colori[colore]].sort((a, b) =>
+          (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0)
+        );
+
+        if (partite.length === 1) {
+          tipBody.appendChild(creaRigaColore(partite[0]));
+        } else {
+          const totRocche = partite.reduce((s, p) => s + (p.quantitaRocche ?? 0), 0);
+          const coloreGroup = document.createElement('div');
+          coloreGroup.className = 'pf-colore-group';
+
+          const coloreHeader = document.createElement('div');
+          coloreHeader.className = 'pf-colore-group-header';
+          coloreHeader.innerHTML = `
+            <div class="pf-color-name">${colore}</div>
+            <div class="pf-colore-group-count">${partite.length} partite · ${totRocche} rocche totali</div>
+          `;
+          coloreGroup.appendChild(coloreHeader);
+
+          partite.forEach((p, idx) => {
+            coloreGroup.appendChild(creaRigaPartita(p, idx === 0));
+          });
+
+          tipBody.appendChild(coloreGroup);
+        }
+      });
+
+      group.appendChild(tipBody);
       body.appendChild(group);
     });
 
@@ -183,6 +213,61 @@ function render() {
   });
 }
 
+// ─── Riga singola partita (usata quando ci sono più partite per colore) ──
+function creaRigaPartita(p, isPrima) {
+  const rocche = p.quantitaRocche ?? 0;
+  const soglia  = p.sogliaAvviso  ?? 0;
+
+  let stockClass = 'ok';
+  if (rocche <= soglia && rocche > 0) stockClass = 'warning';
+  if (rocche === 0)                   stockClass = 'danger';
+
+  const primaBadge = isPrima
+    ? `<span class="tag tag-prima-partita">PRIMA</span>`
+    : '';
+
+  const row = document.createElement('div');
+  row.className = 'pf-partita-row';
+  row.dataset.id = p.id;
+
+  row.innerHTML = `
+    <div class="pf-partita-info">
+      <div class="pf-partita-detail">
+        ${primaBadge}
+        ${p.partita
+          ? `<span class="pf-meta-chip pf-meta-partita"><i class="fas fa-tag"></i> ${p.partita}</span>`
+          : `<span class="pf-meta-chip" style="color:var(--text-muted)">Partita non specificata</span>`}
+        ${p.ubicazione
+          ? `<span class="pf-meta-chip pf-meta-location"><i class="fas fa-location-dot"></i> ${p.ubicazione}</span>`
+          : ''}
+        ${p.sku
+          ? `<span class="pf-meta-chip pf-meta-sku"><i class="fas fa-barcode"></i> ${p.sku}</span>`
+          : ''}
+      </div>
+    </div>
+    <div>
+      <div class="pf-color-stock ${stockClass}">${rocche}</div>
+      <div class="pf-color-unit">rocche</div>
+    </div>
+    <div class="pf-color-actions">
+      <button class="pf-qty-btn minus" data-id="${p.id}">−</button>
+      <button class="pf-qty-btn plus"  data-id="${p.id}">+</button>
+      <button class="pf-row-menu edit-pf-btn" data-id="${p.id}" title="Modifica">
+        <i class="fas fa-pen"></i>
+      </button>
+      <button class="pf-row-menu elimina-pf-btn" data-id="${p.id}" title="Archivia come eliminato">
+        <i class="fas fa-ban"></i>
+      </button>
+      <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Cancella definitivamente">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `;
+
+  return row;
+}
+
+// ─── Riga colore standard (una sola partita) ─────────────────────
 function creaRigaColore(p) {
   const rocche = p.quantitaRocche ?? 0;
   const soglia  = p.sogliaAvviso  ?? 0;
@@ -234,7 +319,10 @@ function creaRigaColore(p) {
       <button class="pf-row-menu edit-pf-btn" data-id="${p.id}" title="Modifica">
         <i class="fas fa-pen"></i>
       </button>
-      <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Elimina">
+      <button class="pf-row-menu elimina-pf-btn" data-id="${p.id}" title="Archivia come eliminato">
+        <i class="fas fa-ban"></i>
+      </button>
+      <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Cancella definitivamente">
         <i class="fas fa-trash"></i>
       </button>
       <button class="pf-row-menu print-label-btn" data-id="${p.id}" title="Stampa etichetta">
@@ -254,6 +342,8 @@ function gestisciClick(e) {
 
   if (btn.classList.contains('edit-pf-btn')) {
     apriModifica(id);
+  } else if (btn.classList.contains('elimina-pf-btn')) {
+    archivia(id);
   } else if (btn.classList.contains('delete-pf-btn')) {
     elimina(id, btn.dataset.nome);
   } else if (btn.classList.contains('pf-qty-btn')) {
@@ -293,6 +383,90 @@ async function aggiornaQuantita(idProdotto, azione) {
   }
 }
 
+// ─── Archivia / Ripristina / Elimina ────────────────────────────
+async function archivia(id) {
+  const p = tuttiProdottiFiniti.find(p => p.id === id);
+  if (!p) return;
+  if (!confirm(`Archiviare "${p.colore}" come ELIMINATO?\nNon sarà più visibile nel magazzino ma rimarrà nell'archivio e potrà essere ripristinato.`)) return;
+  try {
+    await updateDoc(doc(db, "prodotti_finiti", id), { eliminato: true });
+  } catch (err) {
+    console.error("Errore archiviazione:", err);
+  }
+}
+
+async function ripristina(id) {
+  if (!confirm('Ripristinare questo prodotto nel magazzino attivo?')) return;
+  try {
+    await updateDoc(doc(db, "prodotti_finiti", id), { eliminato: false });
+  } catch (err) {
+    console.error("Errore ripristino:", err);
+  }
+}
+
+async function elimina(id, nome) {
+  if (!confirm(`Eliminare definitivamente "${nome}"? L'operazione non è reversibile.`)) return;
+  try {
+    await deleteDoc(doc(db, "prodotti_finiti", id));
+  } catch (err) {
+    console.error("Errore eliminazione:", err);
+  }
+}
+
+// ─── Archivio eliminati ──────────────────────────────────────────
+function toggleArchivio() {
+  archivioVisibile = !archivioVisibile;
+  const btn  = document.getElementById('toggle-archivio-pf');
+  const list = document.getElementById('list-archivio-pf');
+  btn.innerHTML = archivioVisibile
+    ? `<i class="fas fa-eye-slash"></i> Nascondi Archivio`
+    : `<i class="fas fa-archive"></i> Archivio Eliminati`;
+  list.classList.toggle('hidden', !archivioVisibile);
+  if (archivioVisibile) renderArchivio();
+}
+
+function renderArchivio() {
+  const eliminati = tuttiProdottiFiniti.filter(p => p.eliminato);
+  const container = document.getElementById('list-archivio-pf');
+
+  if (eliminati.length === 0) {
+    container.innerHTML = '<div class="pf-archivio-section"><h4>Archivio Eliminati</h4><p class="empty-state">Nessun prodotto archiviato.</p></div>';
+    return;
+  }
+
+  const sortIT = (a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' });
+  const sorted = [...eliminati].sort((a, b) =>
+    sortIT(a.nome ?? '', b.nome ?? '') || sortIT(a.colore ?? '', b.colore ?? '')
+  );
+
+  container.innerHTML = '';
+  const section = document.createElement('div');
+  section.className = 'pf-archivio-section';
+  section.innerHTML = `<h4><i class="fas fa-archive" style="margin-right:.35rem"></i>Archivio Eliminati (${eliminati.length})</h4>`;
+
+  sorted.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'pf-archivio-row';
+    row.innerHTML = `
+      <div>
+        <div class="pf-archivio-nome">${p.nome ?? '—'} — ${p.colore ?? '—'}</div>
+        <div class="pf-archivio-meta">
+          ${p.fornitore ? `<span>${p.fornitore}</span>` : ''}
+          ${p.partita   ? `<span>Partita: ${p.partita}</span>` : ''}
+          ${p.sku       ? `<span>SKU: ${p.sku}</span>` : ''}
+        </div>
+      </div>
+      <button class="btn-ghost btn-sm ripristina-pf-btn" data-id="${p.id}" style="flex-shrink:0">
+        <i class="fas fa-undo"></i> Ripristina
+      </button>
+    `;
+    row.querySelector('.ripristina-pf-btn').addEventListener('click', () => ripristina(p.id));
+    section.appendChild(row);
+  });
+
+  container.appendChild(section);
+}
+
 // ─── Modal ───────────────────────────────────────────────────────
 function apriAggiungi() {
   const form = document.getElementById('form-prodotto-finito');
@@ -303,6 +477,8 @@ function apriAggiungi() {
   document.getElementById('pf-error').textContent = '';
   document.getElementById('pf-colore-originale').classList.add('hidden');
   document.getElementById('pf-colore-stock').value = '';
+  document.getElementById('pf-nome-multicolore').value = '';
+  document.getElementById('pf-nome-multicolore-group').classList.add('hidden');
   impostaModalitaFornitore(false);
   coloriComponentiForm = [{ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 100 }];
   renderColoriComponentiForm();
@@ -326,6 +502,8 @@ function apriModifica(id) {
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
   if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
+  document.getElementById('pf-nome-multicolore').value = '';
+  document.getElementById('pf-nome-multicolore-group').classList.add('hidden');
   const isStock     = p.fornitore === 'STOCK';
   const isRoccatura = (p.tipoLavorazione ?? 'cordini') === 'roccatura';
   impostaModalitaFornitore(isStock);
@@ -344,6 +522,13 @@ function apriModifica(id) {
     coloriComponentiForm = p.coloriComponenti?.length > 0
       ? p.coloriComponenti.map(c => ({ ...c }))
       : [{ idFornitore: p.fornitore ?? '', idProdotto: '', nomeColore: '', percentuale: 100 }];
+
+    // Pre-carica il nome colore se multicolore
+    if ((p.coloriComponenti?.length ?? 0) > 1) {
+      const nomeBase = (p.colore ?? '').replace(/ Multicolore$/i, '').trim();
+      document.getElementById('pf-nome-multicolore').value = nomeBase;
+    }
+
     renderColoriComponentiForm();
   }
   aggiornaDatalists();
@@ -379,9 +564,12 @@ async function salva(e) {
       errEl.textContent = `Le percentuali colore devono sommare 100% (attuale: ${tot}%).`;
       return;
     }
-    coloreCalcolato = coloriComponentiForm.length === 1
-      ? coloriComponentiForm[0].nomeColore
-      : 'Multicolore';
+    if (coloriComponentiForm.length === 1) {
+      coloreCalcolato = coloriComponentiForm[0].nomeColore;
+    } else {
+      const nomeDisplay = document.getElementById('pf-nome-multicolore').value.trim();
+      coloreCalcolato = nomeDisplay ? `${nomeDisplay} Multicolore` : 'Multicolore';
+    }
     coloriDaSalvare = coloriComponentiForm.map(c => ({
       idProdotto:  c.idProdotto,
       nomeColore:  c.nomeColore,
@@ -408,7 +596,12 @@ async function salva(e) {
     if (form.dataset.mode === 'edit') {
       await updateDoc(doc(db, "prodotti_finiti", form.dataset.id), dati);
     } else {
-      await addDoc(collection(db, "prodotti_finiti"), dati);
+      await addDoc(collection(db, "prodotti_finiti"), {
+        ...dati,
+        eliminato:     false,
+        maiConsegnata: true,
+        createdAt:     serverTimestamp()
+      });
     }
     apriGruppo(dati.fornitore, dati.nome);
     closeModal('modal-prodotto-finito');
@@ -492,6 +685,10 @@ function renderColoriComponentiForm() {
     container.appendChild(row);
   });
 
+  // Mostra/nascondi il campo nome colore multicolore
+  const isMulti = coloriComponentiForm.length > 1;
+  document.getElementById('pf-nome-multicolore-group').classList.toggle('hidden', !isMulti);
+
   aggiornaTotalePercColori();
 }
 
@@ -500,15 +697,6 @@ function aggiornaTotalePercColori() {
   const el  = document.getElementById('pf-perc-totale-colori');
   el.textContent = `${tot}%`;
   el.className   = `perc-totale${tot === 100 ? ' ok' : tot > 100 ? ' errore' : ''}`;
-}
-
-async function elimina(id, nome) {
-  if (!confirm(`Eliminare "${nome}"?`)) return;
-  try {
-    await deleteDoc(doc(db, "prodotti_finiti", id));
-  } catch (err) {
-    console.error("Errore eliminazione:", err);
-  }
 }
 
 export { apriAggiungi as apriModalAggiuntaPF };
