@@ -29,21 +29,39 @@ function caricaOrdini() {
   }, err => console.error("Errore caricamento ordini produzione:", err));
 }
 
-// ─── Sort: per ubicazione alfabetica, senza ubicazione in fondo ──
+// ─── Sort a tre livelli ───────────────────────────────────────────
+// 1) Disponibili (stock > 0) → per ubicazione, senza ubicazione in fondo al gruppo
+// 2) DA PRODURRE (stock = 0 o no match) → alfabetico per nome
+// 3) Già spuntati → alfabetico per nome
 function sortItems(items) {
   const pfCache = getProdottiFiniti();
+
+  function gruppoItem(item) {
+    if (item.spuntato) return 2;
+    const pf    = item.idProdottoFinito ? pfCache.find(p => p.id === item.idProdottoFinito) : null;
+    const stock = pf?.quantitaRocche ?? 0;
+    return (!pf || stock === 0) ? 1 : 0;
+  }
+
   return [...items].sort((a, b) => {
-    const pfA = a.idProdottoFinito ? pfCache.find(p => p.id === a.idProdottoFinito) : null;
-    const pfB = b.idProdottoFinito ? pfCache.find(p => p.id === b.idProdottoFinito) : null;
-    const ubA = pfA?.ubicazione?.trim() || null;
-    const ubB = pfB?.ubicazione?.trim() || null;
+    const ga = gruppoItem(a);
+    const gb = gruppoItem(b);
+    if (ga !== gb) return ga - gb;
 
-    if (!ubA && !ubB) return (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' });
-    if (!ubA) return 1;
-    if (!ubB) return -1;
+    if (ga === 0) {
+      // Disponibili: ordina per ubicazione
+      const pfA = pfCache.find(p => p.id === a.idProdottoFinito);
+      const pfB = pfCache.find(p => p.id === b.idProdottoFinito);
+      const ubA = pfA?.ubicazione?.trim() || null;
+      const ubB = pfB?.ubicazione?.trim() || null;
+      if (!ubA && !ubB) return (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' });
+      if (!ubA) return 1;
+      if (!ubB) return -1;
+      const cmp = ubA.localeCompare(ubB, 'it', { sensitivity: 'base' });
+      if (cmp !== 0) return cmp;
+    }
 
-    const cmp = ubA.localeCompare(ubB, 'it', { sensitivity: 'base' });
-    if (cmp !== 0) return cmp;
+    // DA PRODURRE e spuntati: alfabetico per nome
     return (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' });
   });
 }
