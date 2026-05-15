@@ -2236,20 +2236,21 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     font-size: 4.5pt;
     line-height: 1.25;
     overflow: hidden;
-    flex: 1;
+    flex-shrink: 1;
     text-align: justify;
     margin: 0;
   }
   .print-label-barcode {
     flex-shrink: 0;
     text-align: center;
-    margin: 0.3mm 0 0;
+    margin: 0;
   }
   .print-barcode-svg {
     display: inline-block;
     width: 45mm !important;
     height: 7mm !important;
   }
+  .print-label { page-break-after: always; }
   .print-label-break { page-break-after: always; }
 }
 
