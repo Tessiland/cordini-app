@@ -28,28 +28,11 @@ function caricaOrdini() {
   }, err => console.error("Errore caricamento ordini produzione:", err));
 }
 
-// ─── Helper sort: tipologia → colore usando pfCache ───────────────
-function getSortKeys(item) {
-  const pfCache = getProdottiFiniti();
-  if (item.idProdottoFinito) {
-    const pf = pfCache.find(p => p.id === item.idProdottoFinito);
-    if (pf) return { tip: pf.nome ?? '', col: pf.colore ?? '' };
-  }
-  // Fallback: ultima parola = colore, resto = tipologia
-  const parts = (item.nome ?? '').split(' ');
-  const col   = parts.length > 1 ? parts[parts.length - 1] : '';
-  const tip   = parts.slice(0, -1).join(' ');
-  return { tip, col };
-}
-
+// ─── Sort: alfabetico per nome (tipologia + colore già nel nome) ──
 function sortItems(items) {
-  return [...items].sort((a, b) => {
-    const ka = getSortKeys(a);
-    const kb = getSortKeys(b);
-    const tipCmp = ka.tip.localeCompare(kb.tip, 'it', { sensitivity: 'base' });
-    if (tipCmp !== 0) return tipCmp;
-    return ka.col.localeCompare(kb.col, 'it', { sensitivity: 'base' });
-  });
+  return [...items].sort((a, b) =>
+    (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' })
+  );
 }
 
 // ─── Render ──────────────────────────────────────────────────────

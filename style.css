@@ -2151,13 +2151,16 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   body > *:not(#print-area) { display: none !important; }
   #print-area {
     display: block !important;
-    position: fixed;
-    inset: 0;
+    position: static;
+    width: 100%;
     background: #fff;
-    padding: 1.5cm 1.5cm 1cm;
+    padding: 0;
     color: #111;
     font-family: Arial, sans-serif;
     font-size: 11pt;
+  }
+  .print-doc {
+    padding: 1.5cm 1.5cm 1cm;
   }
 }
 
