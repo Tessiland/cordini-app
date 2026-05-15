@@ -1,6 +1,7 @@
 import {
   collection, query, orderBy, onSnapshot, doc, addDoc,
-  getDocs, updateDoc, runTransaction, serverTimestamp, deleteDoc
+  getDocs, updateDoc, runTransaction, serverTimestamp, deleteDoc,
+  writeBatch, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getProdottiFiniti } from './prodotto-finito.js';
 
@@ -207,10 +208,42 @@ function toggleOrdine(id) {
 async function eliminaOrdine(id) {
   const ordine = ordini.find(o => o.id === id);
   if (!ordine) return;
-  if (!confirm(`Rimuovere l'ordine #${ordine.numero} dalla sezione Produzione?`)) return;
-  if (!confirm('Conferma: l\'ordine verrà eliminato definitivamente. Continuare?')) return;
+
+  const spuntati = (ordine.items ?? []).filter(
+    i => i.spuntato && i.idProdottoFinito && (i.qtyConsegnata ?? 0) > 0
+  );
+
+  const msgConferma = spuntati.length > 0
+    ? `L'ordine #${ordine.numero} ha ${spuntati.length} prodott${spuntati.length === 1 ? 'o consegnato' : 'i consegnati'}.\n\nLe quantità verranno ripristinate nel magazzino prima dell'eliminazione.\n\nConfermi?`
+    : `Eliminare definitivamente l'ordine #${ordine.numero}?`;
+
+  if (!confirm(msgConferma)) return;
+  if (!confirm('Conferma finale: operazione non reversibile. Continuare?')) return;
+
   try {
-    await deleteDoc(doc(db, "ordini_produzione", id));
+    const pfCache = getProdottiFiniti();
+    const batch   = writeBatch(db);
+
+    for (const item of spuntati) {
+      const pfRef     = doc(db, "prodotti_finiti", item.idProdottoFinito);
+      const pfAttuale = pfCache.find(p => p.id === item.idProdottoFinito);
+      const nuovoStock = (pfAttuale?.quantitaRocche ?? 0) + item.qtyConsegnata;
+
+      batch.update(pfRef, { quantitaRocche: increment(item.qtyConsegnata) });
+      batch.set(doc(collection(db, "movimenti_pf")), {
+        idProdotto:   item.idProdottoFinito,
+        nomeProdotto: item.nome,
+        tipo:         'rettifica',
+        quantita:     item.qtyConsegnata,
+        quantitaDopo: nuovoStock,
+        nota:         `Annullamento ordine #${ordine.numero}`,
+        operatore:    operatoreCorrente,
+        timestamp:    serverTimestamp()
+      });
+    }
+
+    batch.delete(doc(db, "ordini_produzione", id));
+    await batch.commit();
     statiAperti.delete(id);
   } catch (err) {
     console.error("Errore eliminazione ordine:", err);
