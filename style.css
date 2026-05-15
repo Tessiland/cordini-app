@@ -2112,12 +2112,13 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     box-sizing: border-box;
   }
   .print-label-tipo {
-    font-size: 11pt;
-    font-weight: 700;
+    font-size: 6pt;
+    font-weight: 600;
     text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     flex-shrink: 0;
+    margin-bottom: 0.3mm;
   }
   .print-label-colore {
     font-size: 10pt;
@@ -2130,11 +2131,7 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     font-size: 7pt;
     text-align: center;
     color: #333;
-    flex-shrink: 0;
-  }
-  .print-label-sep {
-    border-top: 0.2mm solid #999;
-    margin: 0.8mm 0;
+    margin-bottom: 0.8mm;
     flex-shrink: 0;
   }
   .print-label-desc {
@@ -2144,9 +2141,13 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     flex: 1;
     text-align: justify;
   }
-  .print-label-barcode { flex-shrink: 0; }
+  .print-label-barcode {
+    flex-shrink: 0;
+    text-align: center;
+    margin-top: 0.5mm;
+  }
   .print-barcode-svg {
-    display: block;
+    display: inline-block;
     width: 45mm !important;
     height: 7.5mm !important;
   }

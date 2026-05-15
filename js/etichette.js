@@ -127,21 +127,26 @@ export function confermaPrint() {
   });
 }
 
+// Rimuove tutto il contenuto tra parentesi (es. "Bianco (Naturale)" → "Bianco")
+function senzaParentesi(s) {
+  return (s ?? '').replace(/\s*\(.*?\)\s*/g, '').trim();
+}
+
 // ─── Stampa ──────────────────────────────────────────────────────
 function creaLabelHtml(prodotto, descrizione) {
-  const colore = prodotto.coloriComponenti?.length === 1
+  const coloreRaw = prodotto.coloriComponenti?.length === 1
     ? prodotto.coloriComponenti[0].nomeColore
     : (prodotto.colore || '—');
+  const colore = senzaParentesi(coloreRaw);
+
   return `
     <div class="print-label">
       <div class="print-label-tipo">${prodotto.nome ?? '—'}</div>
       <div class="print-label-colore">${colore}</div>
       <div class="print-label-partita">${prodotto.partita || '—'}</div>
-      <div class="print-label-sep"></div>
       <div class="print-label-desc">${descrizione}</div>
       ${prodotto.sku
-        ? `<div class="print-label-sep"></div>
-           <div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
+        ? `<div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
         : ''}
     </div>`;
 }
