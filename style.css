@@ -2204,53 +2204,52 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 0.5mm;
-    line-height: 1.2;
+    padding: 1mm;
+    line-height: 1.3;
     box-sizing: border-box;
     margin: 0;
   }
   .print-label-tipo {
-    font-size: 5.5pt;
+    font-size: 7pt;
     font-weight: 600;
     text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     flex-shrink: 0;
-    margin: 0 0 0.2mm;
+    margin: 0 0 0.5mm;
   }
   .print-label-colore {
-    font-size: 9.5pt;
+    font-size: 11pt;
     font-weight: 700;
     text-align: center;
-    margin: 0 0 0.3mm;
+    margin: 0 0 0.5mm;
     flex-shrink: 0;
   }
   .print-label-partita {
-    font-size: 6.5pt;
+    font-size: 7pt;
     text-align: center;
     color: #000;
     margin: 0 0 0.5mm;
     flex-shrink: 0;
   }
   .print-label-desc {
-    font-size: 4.5pt;
-    line-height: 1.25;
+    font-size: 5.5pt;
+    line-height: 1.3;
     overflow: hidden;
-    flex-shrink: 1;
+    flex: 1;
     text-align: justify;
     margin: 0;
   }
   .print-label-barcode {
     flex-shrink: 0;
     text-align: center;
-    margin: 0;
+    margin: 1mm 0 0;
   }
   .print-barcode-svg {
     display: inline-block;
-    width: 45mm !important;
-    height: 7mm !important;
+    width: 50mm !important;
+    height: 8mm !important;
   }
-  .print-label { page-break-after: always; }
   .print-label-break { page-break-after: always; }
 }
 

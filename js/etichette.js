@@ -162,10 +162,10 @@ function eseguiStampa(prodotto, descrizione, qty) {
     area.querySelectorAll('.print-barcode-svg').forEach(svg => {
       JsBarcode(svg, prodotto.sku, {
         format:       'CODE128',
-        width:        1.5,
-        height:       28,
+        width:        2,
+        height:       32,
         displayValue: true,
-        fontSize:     6,
+        fontSize:     7,
         margin:       1,
         textMargin:   1,
         background:   '#ffffff',
@@ -173,8 +173,8 @@ function eseguiStampa(prodotto, descrizione, qty) {
       });
       svg.removeAttribute('width');
       svg.removeAttribute('height');
-      svg.style.width  = '45mm';
-      svg.style.height = '7.5mm';
+      svg.style.width  = '50mm';
+      svg.style.height = '8mm';
     });
   }
 
