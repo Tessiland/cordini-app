@@ -1557,6 +1557,23 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 }
 .pf-row-menu:hover { color: var(--text-primary); background: var(--bg-elevated); }
 
+.pf-aggiungi-partita-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  margin-top: .3rem;
+  font-size: .68rem;
+  color: var(--accent);
+  opacity: .65;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.pf-aggiungi-partita-link:hover { opacity: 1; }
+
 /* ================================================================
    EMPTY STATE
 ================================================================ */

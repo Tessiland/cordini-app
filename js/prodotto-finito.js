@@ -40,7 +40,11 @@ export function initProdottoFinito(firestoreDb) {
   });
 
   document.getElementById('pf-fornitore').addEventListener('input', e => {
-    impostaModalitaFornitore(e.target.value.trim() === 'STOCK');
+    const val = e.target.value.trim();
+    impostaModalitaFornitore(val === 'STOCK');
+    if (!document.getElementById('pf-colori-section').classList.contains('hidden')) {
+      renderColoriComponentiForm();
+    }
   });
 
   document.querySelectorAll('input[name="pf-lavorazione"]').forEach(radio => {
@@ -316,6 +320,9 @@ function creaRigaColore(p) {
         ${p.partita    ? `<span class="pf-meta-chip pf-meta-partita"><i class="fas fa-tag"></i> ${p.partita}</span>` : ''}
         ${p.sku        ? `<span class="pf-meta-chip pf-meta-sku"><i class="fas fa-barcode"></i> ${p.sku}</span>` : ''}
       </div>
+      <button class="pf-aggiungi-partita-link aggiungi-partita-btn" data-id="${p.id}">
+        <i class="fas fa-plus"></i> aggiungi partita
+      </button>
     </div>
     <div>
       <div class="pf-color-stock ${stockClass}">${rocche}</div>
@@ -332,9 +339,6 @@ function creaRigaColore(p) {
       </button>
       <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Cancella definitivamente">
         <i class="fas fa-trash"></i>
-      </button>
-      <button class="pf-row-menu aggiungi-partita-btn" data-id="${p.id}" title="Aggiungi partita">
-        <i class="fas fa-layer-group"></i>
       </button>
       <button class="pf-row-menu print-label-btn" data-id="${p.id}" title="Stampa etichetta">
         <i class="fas fa-tag"></i>
@@ -676,9 +680,11 @@ async function salva(e) {
 
 // ─── Colori componenti (multicolore) ────────────────────────────
 function renderColoriComponentiForm() {
-  const container = document.getElementById('colori-list');
-  const prodotti  = getProdotti().sort((a, b) => a.nome.localeCompare(b.nome));
-  const fornitori = getFornitori();
+  const container         = document.getElementById('colori-list');
+  const prodotti          = getProdotti().sort((a, b) => a.nome.localeCompare(b.nome));
+  const fornitori         = getFornitori();
+  const fornitorePrincipale = document.getElementById('pf-fornitore').value.trim();
+  const isIbridi          = fornitorePrincipale === 'IBRIDI';
 
   container.innerHTML = '';
 
@@ -686,24 +692,32 @@ function renderColoriComponentiForm() {
     const row = document.createElement('div');
     row.className = 'colore-form-row';
 
-    const opzFornitori = fornitori.map(f =>
-      `<option value="${f.nome}" ${f.nome === c.idFornitore ? 'selected' : ''}>${f.nome}</option>`
-    ).join('');
+    // Per non-IBRIDI: usa il fornitore principale come filtro automatico
+    const fornitoreEffettivo = isIbridi ? c.idFornitore : fornitorePrincipale;
+    if (!isIbridi) coloriComponentiForm[i].idFornitore = fornitorePrincipale;
 
-    const filtrati = c.idFornitore
-      ? prodotti.filter(p => p.idFornitore === c.idFornitore)
+    const filtrati = fornitoreEffettivo
+      ? prodotti.filter(p => p.idFornitore === fornitoreEffettivo)
       : prodotti;
 
     const opzProdotti = filtrati.map(p =>
       `<option value="${p.id}" data-nome="${p.nome}" ${p.id === c.idProdotto ? 'selected' : ''}>${p.nome}</option>`
     ).join('');
 
+    // Select fornitore visibile solo per IBRIDI
+    const selectFornitoreHtml = isIbridi ? (() => {
+      const opzFornitori = fornitori.map(f =>
+        `<option value="${f.nome}" ${f.nome === c.idFornitore ? 'selected' : ''}>${f.nome}</option>`
+      ).join('');
+      return `<select class="colore-forn-sel" data-index="${i}">
+        <option value="">— Fornitore —</option>
+        ${opzFornitori}
+      </select>`;
+    })() : '';
+
     row.innerHTML = `
       <div class="colore-form-selects">
-        <select class="colore-forn-sel" data-index="${i}">
-          <option value="">— Fornitore —</option>
-          ${opzFornitori}
-        </select>
+        ${selectFornitoreHtml}
         <select class="colore-prod-sel" data-index="${i}">
           <option value="">— Colore materia prima —</option>
           ${opzProdotti}
@@ -719,12 +733,14 @@ function renderColoriComponentiForm() {
       </div>
     `;
 
-    row.querySelector('.colore-forn-sel').addEventListener('change', e => {
-      coloriComponentiForm[i].idFornitore = e.target.value;
-      coloriComponentiForm[i].idProdotto  = '';
-      coloriComponentiForm[i].nomeColore  = '';
-      renderColoriComponentiForm();
-    });
+    if (isIbridi) {
+      row.querySelector('.colore-forn-sel').addEventListener('change', e => {
+        coloriComponentiForm[i].idFornitore = e.target.value;
+        coloriComponentiForm[i].idProdotto  = '';
+        coloriComponentiForm[i].nomeColore  = '';
+        renderColoriComponentiForm();
+      });
+    }
 
     row.querySelector('.colore-prod-sel').addEventListener('change', e => {
       const opt = e.target.selectedOptions[0];
