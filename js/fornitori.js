@@ -60,110 +60,131 @@ function nomeCanonicoFornitore(nome) {
 }
 
 // ─── Unificazione fornitori duplicati ───────────────────────────
+// Fonte di verità: i nomi dei fornitori nella materia prima.
+// I prodotti finiti vengono allineati a quei nomi.
+// "STOCK" e "IBRIDI" nel campo fornitore principale vengono lasciati invariati.
+// coloriComponenti[].idFornitore viene normalizzato sempre, anche negli IBRIDI.
 async function eseguiUnificazione() {
   const btn = document.getElementById('unifica-fornitori-btn');
   btn.disabled = true;
   btn.textContent = 'Analisi in corso…';
 
   try {
-    const fornSnap = await getDocs(collection(db, "fornitori"));
-    const allForn  = fornSnap.docs.map(d => ({ id: d.id, nome: d.data().nome }));
+    // Leggi tutto in parallelo
+    const [prodSnap, pfSnap, fornSnap] = await Promise.all([
+      getDocs(collection(db, "prodotti")),
+      getDocs(collection(db, "prodotti_finiti")),
+      getDocs(collection(db, "fornitori"))
+    ]);
 
-    // Raggruppa per nome canonico
-    const gruppi = {};
-    allForn.forEach(f => {
-      const can = nomeCanonicoFornitore(f.nome);
-      if (!gruppi[can]) gruppi[can] = [];
-      gruppi[can].push(f);
-    });
+    // Nomi canonici = valori distinti di idFornitore nella materia prima
+    const canonici = [...new Set(
+      prodSnap.docs.map(d => d.data().idFornitore).filter(Boolean)
+    )];
 
-    const daUnificare = Object.entries(gruppi).filter(([, g]) => g.length > 1);
-
-    if (daUnificare.length === 0) {
-      alert('Nessun fornitore duplicato trovato. Il database è già pulito.');
+    if (canonici.length === 0) {
+      alert('Nessun fornitore trovato nella materia prima. Impossibile procedere.');
       return;
     }
 
-    const preview = daUnificare.map(([can, grp]) =>
-      `• ${grp.map(f => `"${f.nome}"`).join(' + ')}  →  "${can}"`
-    ).join('\n');
+    // Per ogni nome "sporco", trova il canonico con normalizzazione
+    const SPECIALI = new Set(['STOCK', 'IBRIDI']);
 
-    if (!confirm(`Trovati ${daUnificare.length} grupp${daUnificare.length === 1 ? 'o' : 'i'} da unificare:\n\n${preview}\n\nProcedo?`)) return;
+    function trovaCanonico(nome) {
+      if (!nome || SPECIALI.has(nome)) return null;
+      const normNome = normalizzaFornitore(nome);
+      return canonici.find(c => normalizzaFornitore(c) === normNome) ?? null;
+    }
+
+    // Analizza prodotti finiti: cosa cambierebbe
+    const modifiche = [];
+    pfSnap.docs.forEach(d => {
+      const data = d.data();
+      const righe = [];
+
+      const canForn = trovaCanonico(data.fornitore);
+      if (canForn && canForn !== data.fornitore) {
+        righe.push(`  fornitore: "${data.fornitore}" → "${canForn}"`);
+      }
+
+      (data.coloriComponenti ?? []).forEach((c, i) => {
+        const canCC = trovaCanonico(c.idFornitore);
+        if (canCC && canCC !== c.idFornitore) {
+          righe.push(`  componente ${i + 1}: "${c.idFornitore}" → "${canCC}"`);
+        }
+      });
+
+      if (righe.length > 0) {
+        modifiche.push({ id: d.id, nome: data.nome, righe, data, canForn });
+      }
+    });
+
+    // Fornitori nella collezione da eliminare (non canonici e non speciali)
+    const fornDaEliminare = fornSnap.docs.filter(d => {
+      const nome = d.data().nome;
+      if (SPECIALI.has(nome)) return false;
+      return !canonici.includes(nome);
+    });
+
+    if (modifiche.length === 0 && fornDaEliminare.length === 0) {
+      alert('Tutto già allineato. Nessuna modifica necessaria.');
+      return;
+    }
+
+    // Anteprima
+    const previewPF = modifiche.slice(0, 10).map(m =>
+      `${m.nome ?? '(senza nome)'}:\n${m.righe.join('\n')}`
+    ).join('\n\n');
+    const extraPF = modifiche.length > 10 ? `\n…e altri ${modifiche.length - 10} prodotti` : '';
+    const previewForn = fornDaEliminare.length > 0
+      ? `\n\nFornitori da rimuovere dalla lista:\n${fornDaEliminare.map(d => `  • "${d.data().nome}"`).join('\n')}`
+      : '';
+
+    if (!confirm(
+      `Prodotti finiti da aggiornare: ${modifiche.length}\n\n${previewPF}${extraPF}${previewForn}\n\nProcedo?`
+    )) return;
 
     btn.textContent = 'Migrazione in corso…';
 
-    // Leggi tutti i prodotti e prodotti finiti
-    const [prodSnap, pfSnap] = await Promise.all([
-      getDocs(collection(db, "prodotti")),
-      getDocs(collection(db, "prodotti_finiti"))
-    ]);
-
-    // Mappa oldNome → nomeCanonicoFornitore
-    const remap = {};
-    daUnificare.forEach(([can, grp]) => {
-      grp.forEach(f => { remap[f.nome] = can; });
-    });
-
     const batch = writeBatch(db);
 
-    // Aggiorna prodotti materia prima
-    prodSnap.docs.forEach(d => {
-      const idF = d.data().idFornitore;
-      if (idF && remap[idF]) {
-        batch.update(doc(db, "prodotti", d.id), { idFornitore: remap[idF] });
-      }
-    });
-
-    // Aggiorna prodotti finiti (fornitore + coloriComponenti)
-    pfSnap.docs.forEach(d => {
-      const data    = d.data();
+    // Aggiorna prodotti finiti
+    modifiche.forEach(({ id, data, canForn }) => {
       const updates = {};
 
-      if (data.fornitore && remap[data.fornitore]) {
-        updates.fornitore = remap[data.fornitore];
+      if (canForn && canForn !== data.fornitore) {
+        updates.fornitore = canForn;
       }
 
       if (data.coloriComponenti?.length) {
-        const nuovi   = data.coloriComponenti.map(c =>
-          (c.idFornitore && remap[c.idFornitore])
-            ? { ...c, idFornitore: remap[c.idFornitore] }
-            : c
-        );
+        const nuovi = data.coloriComponenti.map(c => {
+          const canCC = trovaCanonico(c.idFornitore);
+          return (canCC && canCC !== c.idFornitore) ? { ...c, idFornitore: canCC } : c;
+        });
         const changed = nuovi.some((c, i) => c.idFornitore !== data.coloriComponenti[i].idFornitore);
         if (changed) updates.coloriComponenti = nuovi;
       }
 
       if (Object.keys(updates).length > 0) {
-        batch.update(doc(db, "prodotti_finiti", d.id), updates);
+        batch.update(doc(db, "prodotti_finiti", id), updates);
       }
     });
 
-    // Aggiorna/elimina documenti fornitori
-    daUnificare.forEach(([can, grp]) => {
-      const haCanon = grp.find(f => f.nome === can);
-      if (haCanon) {
-        grp.filter(f => f.nome !== can).forEach(f => {
-          batch.delete(doc(db, "fornitori", f.id));
-        });
-      } else {
-        const primo = grp[0];
-        batch.update(doc(db, "fornitori", primo.id), { nome: can });
-        grp.slice(1).forEach(f => {
-          batch.delete(doc(db, "fornitori", f.id));
-        });
-      }
+    // Rimuovi fornitori non canonici dalla collezione fornitori
+    fornDaEliminare.forEach(d => {
+      batch.delete(doc(db, "fornitori", d.id));
     });
 
     await batch.commit();
     await carica();
 
-    alert(`✓ Migrazione completata!\n${daUnificare.length} grupp${daUnificare.length === 1 ? 'o unificato' : 'i unificati'}.`);
+    alert(`✓ Migrazione completata!\n${modifiche.length} prodotti finiti aggiornati.\n${fornDaEliminare.length} fornitori rimossi dalla lista.`);
 
   } catch (err) {
     console.error("Errore unificazione fornitori:", err);
     alert(`Errore durante la migrazione: ${err.message}`);
   } finally {
-    btn.disabled  = false;
+    btn.disabled = false;
     btn.textContent = 'Unifica Fornitori';
   }
 }
