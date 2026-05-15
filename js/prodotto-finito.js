@@ -33,9 +33,6 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
-  document.getElementById('import-qty-file').addEventListener('change', importaQuantita);
-  document.getElementById('ripristina-csv-file').addEventListener('change', ripristinaDaCSV);
-  document.getElementById('aggiorna-partite-file').addEventListener('change', aggiornaPartiteDaCSV);
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
