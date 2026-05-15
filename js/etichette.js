@@ -185,11 +185,13 @@ function eseguiStampa(prodotto, descrizione, qty) {
     document.head.appendChild(styleEl);
   }
   styleEl.textContent = `
-    @page { size: 62mm 36mm; margin: 0.5mm; }
+    @page { size: 62mm 36mm; margin: 0; }
+    html, body { margin: 0 !important; padding: 0 !important; }
     #print-area {
       position: static !important;
+      margin: 0 !important;
       padding: 0 !important;
-      width: 61mm !important;
+      width: 62mm !important;
       overflow: hidden !important;
       background: #fff;
     }
