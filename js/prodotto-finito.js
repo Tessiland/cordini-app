@@ -546,7 +546,6 @@ function apriAggiungi() {
   document.getElementById('pf-colore-originale').classList.add('hidden');
   document.getElementById('pf-colore-stock').value = '';
   document.getElementById('pf-nome-multicolore').value = '';
-  document.getElementById('pf-nome-multicolore-group').classList.add('hidden');
   impostaModalitaFornitore(false);
   coloriComponentiForm = [{ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 100 }];
   renderColoriComponentiForm();
@@ -570,8 +569,7 @@ function apriModifica(id) {
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
   if (lav) lav.checked = true;
   document.getElementById('pf-error').textContent = '';
-  document.getElementById('pf-nome-multicolore').value = '';
-  document.getElementById('pf-nome-multicolore-group').classList.add('hidden');
+  document.getElementById('pf-nome-multicolore').value = p.colore ?? '';
   const isStock     = p.fornitore === 'STOCK';
   const isRoccatura = (p.tipoLavorazione ?? 'cordini') === 'roccatura';
   impostaModalitaFornitore(isStock);
@@ -590,12 +588,6 @@ function apriModifica(id) {
     coloriComponentiForm = p.coloriComponenti?.length > 0
       ? p.coloriComponenti.map(c => ({ ...c }))
       : [{ idFornitore: p.fornitore ?? '', idProdotto: '', nomeColore: '', percentuale: 100 }];
-
-    // Pre-carica il nome colore se multicolore
-    if ((p.coloriComponenti?.length ?? 0) > 1) {
-      const nomeBase = (p.colore ?? '').replace(/ Multicolore$/i, '').trim();
-      document.getElementById('pf-nome-multicolore').value = nomeBase;
-    }
 
     renderColoriComponentiForm();
   }
@@ -632,12 +624,12 @@ async function salva(e) {
       errEl.textContent = `Le percentuali colore devono sommare 100% (attuale: ${tot}%).`;
       return;
     }
+    const nomeDisplay = document.getElementById('pf-nome-multicolore').value.trim();
     if (coloriComponentiForm.length === 1) {
-      coloreCalcolato = coloriComponentiForm[0].nomeColore;
+      coloreCalcolato = nomeDisplay || coloriComponentiForm[0].nomeColore;
     } else {
-      const nomeDisplay = document.getElementById('pf-nome-multicolore').value.trim();
       if (!nomeDisplay) {
-        errEl.textContent = 'Inserisci il nome del colore per i prodotti multicolore.';
+        errEl.textContent = 'Inserisci il nome del colore.';
         return;
       }
       coloreCalcolato = nomeDisplay;
@@ -748,6 +740,11 @@ function renderColoriComponentiForm() {
       coloriComponentiForm[i].idProdotto  = e.target.value;
       coloriComponentiForm[i].nomeColore  = opt?.dataset.nome ?? '';
       coloriComponentiForm[i].idFornitore = fornitoreRiga;
+      // Auto-compila il nome colore se è ancora vuoto (solo per monocomponente)
+      if (coloriComponentiForm.length === 1) {
+        const campoNome = document.getElementById('pf-nome-multicolore');
+        if (!campoNome.value) campoNome.value = coloriComponentiForm[i].nomeColore;
+      }
       aggiornaTotalePercColori();
     });
 
@@ -764,9 +761,8 @@ function renderColoriComponentiForm() {
     container.appendChild(row);
   });
 
-  // Mostra/nascondi il campo nome colore multicolore
-  const isMulti = coloriComponentiForm.length > 1;
-  document.getElementById('pf-nome-multicolore-group').classList.toggle('hidden', !isMulti);
+  // Il campo nome colore è sempre visibile
+  document.getElementById('pf-nome-multicolore-group').classList.remove('hidden');
 
   aggiornaTotalePercColori();
 }
