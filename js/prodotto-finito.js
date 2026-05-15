@@ -775,4 +775,43 @@ function aggiornaTotalePercColori() {
   el.className   = `perc-totale${tot === 100 ? ' ok' : tot > 100 ? ' errore' : ''}`;
 }
 
+// ─── Migrazione one-time: rimuove suffisso "Multicolore" dal campo colore ──
+export async function rimuoviSuffissoMulticolore() {
+  const btn = document.getElementById('rimuovi-multicolore-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Analisi…'; }
+
+  try {
+    const daAggiornare = tuttiProdottiFiniti.filter(p =>
+      p.colore && / multicolore$/i.test(p.colore.trim())
+    );
+
+    if (daAggiornare.length === 0) {
+      alert('Nessun prodotto da correggere. Il database è già pulito.');
+      return;
+    }
+
+    const preview = daAggiornare.slice(0, 8).map(p =>
+      `• "${p.colore}"  →  "${p.colore.replace(/ multicolore$/i, '').trim()}"`
+    ).join('\n');
+    const extra = daAggiornare.length > 8 ? `\n…e altri ${daAggiornare.length - 8}` : '';
+
+    if (!confirm(`${daAggiornare.length} prodotti da correggere:\n\n${preview}${extra}\n\nProcedo?`)) return;
+
+    if (btn) btn.textContent = 'Migrazione…';
+
+    await Promise.all(daAggiornare.map(p =>
+      updateDoc(doc(db, "prodotti_finiti", p.id), {
+        colore: p.colore.replace(/ multicolore$/i, '').trim()
+      })
+    ));
+
+    alert(`✓ Corretti ${daAggiornare.length} prodotti.`);
+  } catch (err) {
+    console.error("Errore migrazione Multicolore:", err);
+    alert(`Errore: ${err.message}`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Rimuovi "Multicolore"'; }
+  }
+}
+
 export { apriAggiungi as apriModalAggiuntaPF };

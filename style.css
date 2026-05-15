@@ -2147,8 +2147,8 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   .print-label-barcode { flex-shrink: 0; }
   .print-barcode-svg {
     display: block;
-    width: 60mm !important;
-    height: 10mm !important;
+    width: 45mm !important;
+    height: 7.5mm !important;
   }
   .print-label-break { page-break-after: always; }
 }
