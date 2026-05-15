@@ -633,7 +633,11 @@ async function salva(e) {
       coloreCalcolato = coloriComponentiForm[0].nomeColore;
     } else {
       const nomeDisplay = document.getElementById('pf-nome-multicolore').value.trim();
-      coloreCalcolato = nomeDisplay ? `${nomeDisplay} Multicolore` : 'Multicolore';
+      if (!nomeDisplay) {
+        errEl.textContent = 'Inserisci il nome del colore per i prodotti multicolore.';
+        return;
+      }
+      coloreCalcolato = nomeDisplay;
     }
     coloriDaSalvare = coloriComponentiForm.map(c => ({
       idProdotto:  c.idProdotto,
