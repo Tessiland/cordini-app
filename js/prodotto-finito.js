@@ -13,6 +13,7 @@ let operatoreCorrente = 'Operatori';
 let tuttiProdottiFiniti = [];
 let coloriComponentiForm = [];
 let archivioVisibile = false;
+let idSorgentePF = null;
 
 export function setOperatorePF(email) {
   operatoreCorrente = email || 'Operatori';
@@ -31,6 +32,7 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
+  document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
@@ -192,7 +194,13 @@ function render() {
           coloreHeader.className = 'pf-colore-group-header';
           coloreHeader.innerHTML = `
             <div class="pf-color-name">${colore}</div>
-            <div class="pf-colore-group-count">${partite.length} partite · ${totRocche} rocche totali</div>
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <div class="pf-colore-group-count">${partite.length} partite · ${totRocche} rocche totali</div>
+              <button class="btn-ghost btn-sm aggiungi-partita-btn" data-id="${partite[0].id}"
+                style="font-size:.7rem;padding:.2rem .5rem;height:auto">
+                <i class="fas fa-plus"></i> Partita
+              </button>
+            </div>
           `;
           coloreGroup.appendChild(coloreHeader);
 
@@ -325,6 +333,9 @@ function creaRigaColore(p) {
       <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Cancella definitivamente">
         <i class="fas fa-trash"></i>
       </button>
+      <button class="pf-row-menu aggiungi-partita-btn" data-id="${p.id}" title="Aggiungi partita">
+        <i class="fas fa-layer-group"></i>
+      </button>
       <button class="pf-row-menu print-label-btn" data-id="${p.id}" title="Stampa etichetta">
         <i class="fas fa-tag"></i>
       </button>
@@ -340,7 +351,9 @@ function gestisciClick(e) {
   if (!btn) return;
   const id = btn.dataset.id;
 
-  if (btn.classList.contains('edit-pf-btn')) {
+  if (btn.classList.contains('aggiungi-partita-btn')) {
+    apriNuovaPartita(id);
+  } else if (btn.classList.contains('edit-pf-btn')) {
     apriModifica(id);
   } else if (btn.classList.contains('elimina-pf-btn')) {
     archivia(id);
@@ -392,6 +405,54 @@ async function archivia(id) {
     await updateDoc(doc(db, "prodotti_finiti", id), { eliminato: true });
   } catch (err) {
     console.error("Errore archiviazione:", err);
+  }
+}
+
+// ─── Nuova partita (copia dati da prodotto esistente) ───────────
+function apriNuovaPartita(idSorgente) {
+  idSorgentePF = idSorgente;
+  const sorgente = tuttiProdottiFiniti.find(p => p.id === idSorgente);
+  if (!sorgente) return;
+  const form = document.getElementById('form-nuova-partita');
+  form.reset();
+  document.getElementById('np-rocche').value = 0;
+  document.getElementById('np-error').textContent = '';
+  document.getElementById('np-prodotto-info').textContent =
+    `${sorgente.fornitore ?? '—'} · ${sorgente.nome ?? '—'} · ${sorgente.colore ?? '—'}`;
+  openModal('modal-nuova-partita');
+}
+
+async function salvaNuovaPartita(e) {
+  e.preventDefault();
+  const sorgente = tuttiProdottiFiniti.find(p => p.id === idSorgentePF);
+  if (!sorgente) return;
+  const errEl   = document.getElementById('np-error');
+  const saveBtn = e.target.querySelector('[type="submit"]');
+  errEl.textContent = '';
+  saveBtn.disabled  = true;
+  try {
+    await addDoc(collection(db, "prodotti_finiti"), {
+      fornitore:        sorgente.fornitore,
+      nome:             sorgente.nome,
+      colore:           sorgente.colore,
+      coloriComponenti: sorgente.coloriComponenti ?? [],
+      tipoLavorazione:  sorgente.tipoLavorazione  ?? 'cordini',
+      sogliaAvviso:     sorgente.sogliaAvviso      ?? 0,
+      sku:              sorgente.sku               ?? '',
+      partita:          document.getElementById('np-partita').value.trim(),
+      ubicazione:       document.getElementById('np-ubicazione').value.trim(),
+      quantitaRocche:   Number(document.getElementById('np-rocche').value),
+      eliminato:        false,
+      maiConsegnata:    true,
+      createdAt:        serverTimestamp()
+    });
+    apriGruppo(sorgente.fornitore, sorgente.nome);
+    closeModal('modal-nuova-partita');
+  } catch (err) {
+    console.error("Errore salvataggio nuova partita:", err);
+    errEl.textContent = 'Errore nel salvataggio. Controlla la connessione.';
+  } finally {
+    saveBtn.disabled = false;
   }
 }
 

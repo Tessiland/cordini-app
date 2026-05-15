@@ -566,6 +566,38 @@
     </div>
   </div>
 
+  <!-- ========== MODAL NUOVA PARTITA ========== -->
+  <div id="modal-nuova-partita" class="modal-overlay hidden">
+    <div class="modal-panel" style="max-width:420px">
+      <div class="modal-header">
+        <h3 class="modal-title">Aggiungi Partita</h3>
+        <button class="btn-icon modal-close" data-modal="modal-nuova-partita">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <p id="np-prodotto-info" style="font-size:.82rem;color:var(--text-secondary);margin-bottom:1.25rem;padding:.5rem .75rem;background:var(--surface-2);border-radius:var(--radius-sm);line-height:1.4"></p>
+      <form id="form-nuova-partita">
+        <div class="field-group">
+          <label for="np-partita">Partita <span style="color:var(--text-muted);font-weight:400">(opzionale)</span></label>
+          <input type="text" id="np-partita" placeholder="Es. LOT-2025-06" autocomplete="off">
+        </div>
+        <div class="field-group">
+          <label for="np-ubicazione">Ubicazione <span style="color:var(--text-muted);font-weight:400">(opzionale)</span></label>
+          <input type="text" id="np-ubicazione" placeholder="Es. BK-12, AD-3…" autocomplete="off">
+        </div>
+        <div class="field-group">
+          <label for="np-rocche">Quantità Rocche</label>
+          <input type="number" id="np-rocche" value="0" min="0" required>
+        </div>
+        <p id="np-error" class="error-msg"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary modal-close" data-modal="modal-nuova-partita">Annulla</button>
+          <button type="submit" class="btn-primary">Salva Partita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Area di stampa — nascosta, visibile solo con window.print() -->
   <div id="print-area" style="display:none"></div>
 
