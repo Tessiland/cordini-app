@@ -34,6 +34,7 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
   document.getElementById('import-qty-file').addEventListener('change', importaQuantita);
+  document.getElementById('ripristina-csv-file').addEventListener('change', ripristinaDaCSV);
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
@@ -774,6 +775,128 @@ function aggiornaTotalePercColori() {
   const el  = document.getElementById('pf-perc-totale-colori');
   el.textContent = `${tot}%`;
   el.className   = `perc-totale${tot === 100 ? ' ok' : tot > 100 ? ' errore' : ''}`;
+}
+
+// ─── Ripristino prodotti finiti da CSV ───────────────────────────
+// Formato atteso: separatore ; | colonne: (vuoto);(vuoto);Cod.;Descrizione;Libero 4;Q.tà in giacenza;Fornitore;Ubicazione;Note
+async function ripristinaDaCSV(e) {
+  const file     = e.target.files[0];
+  const statusEl = document.getElementById('import-qty-status');
+  if (!file) return;
+  e.target.value = '';
+
+  statusEl.style.color = 'var(--text-muted)';
+  statusEl.textContent = 'Lettura CSV…';
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const testo = ev.target.result;
+      const wb    = XLSX.read(testo, { type: 'string', FS: ';' });
+      const rows  = XLSX.utils.sheet_to_json(
+        wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }
+      );
+
+      // Individua colonne dal header (flessibile)
+      const hdr   = (rows[0] ?? []).map(h => String(h).trim().toLowerCase());
+      const iSku  = hdr.findIndex(h => h === 'cod.');
+      const iDesc = hdr.findIndex(h => h === 'descrizione');
+      const iPart = hdr.findIndex(h => h === 'libero 4' || h.includes('libero'));
+      const iQty  = hdr.findIndex(h => h.includes('giacenza') || h.includes('q.tà'));
+      const iForn = hdr.findIndex(h => h === 'fornitore');
+      const iUbic = hdr.findIndex(h => h === 'ubicazione');
+      const iNote = hdr.findIndex(h => h === 'note');
+
+      if (iSku === -1 || iDesc === -1) {
+        throw new Error('Colonne non trovate. Verifica che il CSV abbia: Cod., Descrizione, Fornitore');
+      }
+
+      const prodotti = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row  = rows[i];
+        const sku  = String(row[iSku]  ?? '').trim();
+        const desc = String(row[iDesc] ?? '').trim();
+        if (!sku || !desc) continue;
+
+        // Separa tipologia e colore dalla descrizione
+        // Formato atteso: "Nome Tipologia Colore Grammi N gr"
+        const parteProdotto = desc.split(/\s+grammi\s+/i)[0].trim();
+        const parole        = parteProdotto.split(' ');
+        const colore        = parole.length > 1 ? parole[parole.length - 1] : parteProdotto;
+        const nome          = parole.length > 1 ? parole.slice(0, -1).join(' ') : parteProdotto;
+
+        // Fornitore normalizzato
+        const fornitoreCsv  = String(row[iForn] ?? '').trim();
+        const normForn      = normalizzaFornitore(fornitoreCsv);
+        const fornMatch     = getFornitori().find(f => normalizzaFornitore(f.nome) === normForn);
+        const fornitore     = fornMatch
+          ? fornMatch.nome
+          : (normForn.charAt(0).toUpperCase() + normForn.slice(1).toLowerCase());
+
+        const qty       = parseInt(String(row[iQty] ?? '0').replace(/\D/g, '')) || 0;
+        const partita   = String(row[iPart] ?? '').trim();
+        const ubicazione = String(row[iUbic] ?? '').trim();
+        const note      = String(row[iNote] ?? '').trim();
+
+        prodotti.push({ sku, nome, colore, fornitore, qty, partita, ubicazione, note });
+      }
+
+      if (prodotti.length === 0) {
+        throw new Error('Nessun prodotto valido trovato nel CSV.');
+      }
+
+      const preview = prodotti.slice(0, 5).map(p =>
+        `${p.fornitore} — ${p.nome} — ${p.colore} (${p.qty} rocche)`
+      ).join('\n');
+      const extra = prodotti.length > 5 ? `\n…e altri ${prodotti.length - 5}` : '';
+
+      if (!confirm(
+        `Ripristinare ${prodotti.length} prodotti finiti?\n\n${preview}${extra}\n\nATTENZIONE: verranno creati nuovi documenti in Firestore.\n\nProcedo?`
+      )) {
+        statusEl.textContent = '';
+        return;
+      }
+
+      statusEl.textContent = 'Creazione prodotti in corso…';
+
+      // Batch a blocchi da 200
+      const CHUNK = 200;
+      for (let i = 0; i < prodotti.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        prodotti.slice(i, i + CHUNK).forEach(p => {
+          const ref = doc(collection(db, "prodotti_finiti"));
+          batch.set(ref, {
+            sku:              p.sku,
+            nome:             p.nome,
+            colore:           p.colore,
+            fornitore:        p.fornitore,
+            partita:          p.partita,
+            ubicazione:       p.ubicazione,
+            quantitaRocche:   p.qty,
+            sogliaAvviso:     0,
+            tipoLavorazione:  'cordini',
+            coloriComponenti: [],
+            eliminato:        false,
+            maiConsegnata:    true,
+            createdAt:        serverTimestamp()
+          });
+        });
+        await batch.commit();
+        statusEl.textContent = `Creati ${Math.min(i + CHUNK, prodotti.length)}/${prodotti.length}…`;
+      }
+
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = `✓ ${prodotti.length} prodotti ripristinati correttamente.`;
+      apriGruppo(prodotti[0]?.fornitore ?? '', prodotti[0]?.nome ?? '');
+      setTimeout(() => { statusEl.textContent = ''; }, 8000);
+
+    } catch (err) {
+      console.error("Errore ripristino CSV:", err);
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = `Errore: ${err.message}`;
+    }
+  };
+  reader.readAsText(file, 'utf-8');
 }
 
 // ─── Import quantità da Excel ────────────────────────────────────
