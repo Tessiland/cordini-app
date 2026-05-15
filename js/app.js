@@ -11,6 +11,7 @@ import { initOrdiniFornitori }               from './ordini-fornitori.js';
 import { initEtichette }                     from './etichette.js';
 import { initBacheca }                       from './bacheca.js';
 import { initAlert }                          from './alert.js';
+import { initGuide }                          from './guide.js';
 
 async function main() {
   let firebase;
@@ -52,6 +53,7 @@ async function main() {
     } catch (e) { console.error('initEtichette:', e); }
     try { initBacheca(db); } catch (e) { console.error('initBacheca:', e); }
     try { initAlert(db); } catch (e) { console.error('initAlert:', e); }
+    initGuide();
   });
 }
 

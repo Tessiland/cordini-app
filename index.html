@@ -60,6 +60,7 @@
       <section id="view-magazzino" class="view">
         <div class="view-header">
           <h2>Magazzino</h2>
+          <button class="guida-btn" data-guida="magazzino" title="Guida"><i class="fas fa-circle-info"></i></button>
         </div>
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="materia-prima">Materia Prima</button>
@@ -102,10 +103,12 @@
       <section id="view-alert" class="view hidden">
         <div class="view-header">
           <h2>Alert</h2>
-          <button id="add-alert-btn" class="btn-warning btn-sm">
-            <i class="fas fa-plus"></i> Nuovo manuale
-          </button>
-        </div>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <button class="guida-btn" data-guida="alert" title="Guida"><i class="fas fa-circle-info"></i></button>
+            <button id="add-alert-btn" class="btn-warning btn-sm">
+              <i class="fas fa-plus"></i> Nuovo manuale
+            </button>
+          </div>
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="alert-auto">Automatici</button>
           <button class="tab-btn" data-tab="alert-manuali">Manuali</button>
@@ -122,6 +125,7 @@
       <section id="view-ordini" class="view hidden">
         <div class="view-header">
           <h2>Ordini Fornitori</h2>
+          <button class="guida-btn" data-guida="ordini" title="Guida"><i class="fas fa-circle-info"></i></button>
         </div>
         <div class="output-folder-bar">
           <span id="output-folder-status" class="output-folder-status"></span>
@@ -159,6 +163,7 @@
       <section id="view-bacheca" class="view hidden">
         <div class="view-header">
           <h2>Bacheca</h2>
+          <button class="guida-btn" data-guida="bacheca" title="Guida"><i class="fas fa-circle-info"></i></button>
         </div>
         <form id="message-form" class="message-composer">
           <select id="operator-select" class="input-select">
@@ -178,6 +183,7 @@
       <section id="view-produzione" class="view hidden">
         <div class="view-header">
           <h2>Produzione</h2>
+          <button class="guida-btn" data-guida="produzione" title="Guida"><i class="fas fa-circle-info"></i></button>
         </div>
 
         <!-- Import ordine da WMS -->
@@ -206,9 +212,12 @@
       <section id="view-catalogo" class="view hidden">
         <div class="view-header">
           <h2>Catalogo</h2>
-          <button id="add-anagrafica-btn" class="btn-primary btn-sm admin-only hidden">
-            <i class="fas fa-plus"></i> Nuovo Prodotto
-          </button>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <button class="guida-btn" data-guida="catalogo" title="Guida"><i class="fas fa-circle-info"></i></button>
+            <button id="add-anagrafica-btn" class="btn-primary btn-sm admin-only hidden">
+              <i class="fas fa-plus"></i> Nuovo Prodotto
+            </button>
+          </div>
         </div>
         <div class="filter-row">
           <input type="text" id="search-catalogo" class="input-search" placeholder="Cerca per nome o SKU…">
@@ -569,6 +578,28 @@
         <button type="button" id="conferma-stampa-btn" class="btn-primary">
           <i class="fas fa-print"></i> Stampa
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== MODAL GUIDA ========== -->
+  <div id="modal-guida" class="modal-overlay hidden">
+    <div class="modal-panel" style="max-width:500px">
+      <div class="modal-header">
+        <h3 id="guida-titolo" class="modal-title"></h3>
+        <button class="btn-icon modal-close" data-modal="modal-guida">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="guida-body">
+        <div class="guida-sezione">
+          <div class="guida-sezione-label">Flusso tipico</div>
+          <ol id="guida-flusso" class="guida-flusso"></ol>
+        </div>
+        <div class="guida-sezione">
+          <div class="guida-sezione-label">Funzioni</div>
+          <ul id="guida-funzioni" class="guida-funzioni"></ul>
+        </div>
       </div>
     </div>
   </div>

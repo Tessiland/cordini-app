@@ -2346,6 +2346,93 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 }
 .firma-label { font-size: 8pt; color: #666; text-align: center; }
 
+/* ================================================================
+   GUIDA IN-APP
+================================================================ */
+.guida-btn {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: .2rem .3rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--ease);
+  flex-shrink: 0;
+}
+.guida-btn:hover { color: var(--accent); }
+
+.guida-body { padding: .25rem 0 .5rem; }
+
+.guida-sezione { margin-bottom: 1.25rem; }
+.guida-sezione-label {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  margin-bottom: .6rem;
+}
+
+.guida-flusso {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.guida-flusso li {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  font-size: .83rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.guida-step-num {
+  background: var(--accent);
+  color: #0f172a;
+  font-size: .65rem;
+  font-weight: 700;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: .1rem;
+}
+
+.guida-funzioni {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.guida-funzioni li {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  font-size: .82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  padding: .35rem .5rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+.guida-fn-ic {
+  color: var(--accent);
+  font-size: .8rem;
+  min-width: 1rem;
+  text-align: center;
+  margin-top: .15rem;
+  flex-shrink: 0;
+}
+
 /* Forza tutto in nero per stampa lista e consegna */
 @media print {
   .print-doc * { color: #000 !important; }

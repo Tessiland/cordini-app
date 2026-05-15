@@ -1,0 +1,143 @@
+import { openModal, closeModal } from './nav.js';
+
+// ================================================================
+// CONTENUTI GUIDA — modifica qui per aggiornare i testi.
+// Ogni sezione ha: titolo, flusso (passi operativi) e funzioni.
+// ================================================================
+const GUIDE = {
+
+  magazzino: {
+    titolo: 'Magazzino',
+    flusso: [
+      'Scegli la tab <b>Materia Prima</b> per gestire fili e cartoni, oppure <b>Prodotto Finito</b> per le rocche già lavorate.',
+      '<b>Materia Prima:</b> usa + e − per aggiornare la quantità dopo un carico o un prelievo. Ogni movimento viene registrato automaticamente.',
+      '<b>Prodotto Finito:</b> apri Fornitore → Tipologia → Colore per trovare il cordino. Usa + e − per aggiornare le rocche disponibili.',
+      'Se arriva una nuova partita dello stesso colore, clicca <b>"aggiungi partita"</b> sotto il nome del colore — non serve creare un nuovo prodotto.',
+      'Il tag <b>PRIMA</b> indica la partita più vecchia: è quella che va spedita all\'hub per prima.',
+    ],
+    funzioni: [
+      { ic: 'fa-plus-minus',     txt: '<b>+ / −</b> — aggiornano la quantità e registrano il movimento' },
+      { ic: 'fa-pen',            txt: '<b>Matita</b> — modifica i dati del prodotto (nome, soglia, ubicazione, partita…)' },
+      { ic: 'fa-layer-group',    txt: '<b>Aggiungi partita</b> — crea una seconda partita dello stesso colore, con ubicazione propria' },
+      { ic: 'fa-ban',            txt: '<b>Ban (archivia)</b> — sposta il prodotto nell\'archivio eliminati, recuperabile' },
+      { ic: 'fa-tag',            txt: '<b>Etichetta</b> — stampa l\'etichetta per la rocca (solo Prodotto Finito)' },
+      { ic: 'fa-triangle-exclamation', txt: '<b>Soglia avviso</b> — quando la quantità scende sotto questa soglia, il prodotto compare nelle proposte d\'ordine' },
+      { ic: 'fa-weight-scale',   txt: '<b>kgPerCartone</b> — compilarlo sblocca il calcolo producibilità nella sezione Alert' },
+    ]
+  },
+
+  alert: {
+    titolo: 'Alert',
+    flusso: [
+      'Ogni mattina controlla la tab <b>Automatici</b> — i prodotti rossi sono quelli più urgenti.',
+      'Per ogni alert rosso leggi la <b>copertura totale</b>: se è solo stock (producibilità N/D), hai meno margine.',
+      'Se vedi il box giallo <b>"conflitto MP"</b>, quella materia prima serve anche ad altri prodotti che escono di più — valuta bene prima di usarla.',
+      'Usa <b>Nuovo manuale</b> per segnalare situazioni che l\'app non può rilevare da sola (es. tutorial in uscita, promozioni imminenti).',
+    ],
+    funzioni: [
+      { ic: 'fa-circle',         txt: '<b>🔴 Critico</b> — copertura totale sotto 4 settimane: agire subito' },
+      { ic: 'fa-circle',         txt: '<b>🟠 Attenzione</b> — copertura 4–8 settimane, o conflitto con prodotti ad alta rotazione' },
+      { ic: 'fa-chart-line',     txt: '<b>Rotazione media</b> — rocche uscite a settimana negli ultimi 60 giorni' },
+      { ic: 'fa-box-open',       txt: '<b>Producibile</b> — rocche ricavabili dalla materia prima in magazzino (N/D se kgPerCartone mancante)' },
+      { ic: 'fa-shield-halved',  txt: '<b>Copertura totale</b> — settimane garantite sommando stock attuale + producibilità' },
+      { ic: 'fa-triangle-exclamation', txt: '<b>Conflitto MP</b> — la stessa materia prima è usata da un prodotto con rotazione più alta' },
+      { ic: 'fa-trash',          txt: '<b>Elimina</b> — rimuove un alert manuale (gli automatici si aggiornano da soli)' },
+    ]
+  },
+
+  ordini: {
+    titolo: 'Ordini Fornitori',
+    flusso: [
+      'Clicca <b>Aggiorna proposte</b> per vedere i prodotti sotto soglia, già raggruppati per fornitore.',
+      'Modifica le quantità se necessario e deseleziona le righe che non vuoi ordinare.',
+      'Imposta la <b>data di spedizione</b> (default o riga per riga) e clicca <b>Crea Ordine</b>.',
+      'Copia il testo dell\'email e mandalo al fornitore. L\'ordine è salvato nello <b>Storico</b>.',
+      'Quando la merce arriva: vai in Storico → clicca <b>Arrivata</b> → inserisci i BOX o i KG ricevuti. Il magazzino si aggiorna automaticamente.',
+    ],
+    funzioni: [
+      { ic: 'fa-rotate',         txt: '<b>Aggiorna proposte</b> — ricalcola i prodotti da ordinare in base alle soglie attuali' },
+      { ic: 'fa-paper-plane',    txt: '<b>Crea Ordine</b> — salva l\'ordine e aggiorna la "quantità in ordine" nel magazzino' },
+      { ic: 'fa-copy',           txt: '<b>Copia testo</b> — copia il testo da incollare nell\'email al fornitore' },
+      { ic: 'fa-truck-ramp-box', txt: '<b>Arrivata</b> — battesimo merce: aggiorna la disponibilità e chiude la voce dell\'ordine' },
+      { ic: 'fa-folder',         txt: '<b>Cartella Output</b> — collegala per salvare automaticamente i testi degli ordini come file .txt' },
+      { ic: 'fa-trash',          txt: '<b>Cancella ordine</b> — ripristina automaticamente la quantità ordinata nel magazzino' },
+    ]
+  },
+
+  produzione: {
+    titolo: 'Produzione',
+    flusso: [
+      'Ricevi l\'Excel dall\'hub e clicca <b>Importa Ordine</b>. L\'app abbina ogni riga al prodotto finito in magazzino.',
+      'La lista è ordinata per <b>ubicazione</b>: segui l\'ordine dall\'alto per fare il percorso più efficiente in magazzino.',
+      'Spunta i prodotti man mano che li prelevi. La quantità viene scalata dal magazzino automaticamente.',
+      'I prodotti in rosso (DA PRODURRE) non sono disponibili: sono raggruppati in fondo.',
+      'Stampa la <b>Lista di Lavoro</b> prima di iniziare il picking. Stampa il <b>Documento di Consegna</b> quando hai finito.',
+    ],
+    funzioni: [
+      { ic: 'fa-file-import',    txt: '<b>Importa Ordine</b> — carica l\'Excel dell\'hub (formato: num, sku, qty_ord, name…)' },
+      { ic: 'fa-print',          txt: '<b>Lista di Lavoro</b> — foglio picking con ubicazione e partita per ogni prodotto' },
+      { ic: 'fa-file-invoice',   txt: '<b>Documento di Consegna</b> — accompagna la merce all\'hub; evidenzia NUOVA PARTITA e ELIMINATO' },
+      { ic: 'fa-check',          txt: '<b>Spunta</b> — segna il prodotto come consegnato e scala le rocche dal magazzino' },
+      { ic: 'fa-pen-to-square',  txt: '<b>Quantità modificabile</b> — clicca il numero richiesto per modificarlo (utile per gestire partite separate)' },
+      { ic: 'fa-trash',          txt: '<b>Elimina ordine</b> — se ci sono prodotti già spuntati, le rocche vengono restituite al magazzino' },
+    ]
+  },
+
+  bacheca: {
+    titolo: 'Bacheca',
+    flusso: [
+      'Leggi i messaggi dall\'alto: i più recenti sono in cima.',
+      'Seleziona il tuo nome dal menu a tendina, scrivi il messaggio e premi Invia.',
+      'Il numero rosso sulla nav indica messaggi arrivati da quando hai visitato l\'ultima volta la bacheca.',
+    ],
+    funzioni: [
+      { ic: 'fa-bell',           txt: '<b>Badge notifica</b> — sparisce non appena apri la bacheca' },
+      { ic: 'fa-clock-rotate-left', txt: '<b>Storico</b> — vengono mostrati gli ultimi 60 messaggi' },
+    ]
+  },
+
+  catalogo: {
+    titolo: 'Catalogo',
+    flusso: [
+      'Cerca un prodotto per nome, SKU o barcode.',
+      'Apri la scheda per verificare la <b>ricetta</b> (percentuali materia prima) — viene usata dal sistema per calcolare la producibilità.',
+      'Usa <b>Descrizioni Tipologie</b> per gestire i testi che appaiono sull\'etichetta di ogni tipo di cordino.',
+    ],
+    funzioni: [
+      { ic: 'fa-percent',        txt: '<b>Ricetta %</b> — composizione materia prima, usata per il calcolo producibilità negli Alert' },
+      { ic: 'fa-barcode',        txt: '<b>SKU / Barcode</b> — codice univoco del prodotto, stampato sull\'etichetta' },
+      { ic: 'fa-file-excel',     txt: '<b>Import Excel</b> — carica i dati del catalogo da file' },
+      { ic: 'fa-tag',            txt: '<b>Descrizioni Tipologie</b> — testi che appaiono sull\'etichetta (una per tipo cordino)' },
+    ]
+  },
+
+};
+
+// ─── Init ────────────────────────────────────────────────────────
+export function initGuide() {
+  document.querySelectorAll('[data-guida]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      apriGuida(btn.dataset.guida);
+    });
+  });
+}
+
+function apriGuida(id) {
+  const g = GUIDE[id];
+  if (!g) return;
+
+  document.getElementById('guida-titolo').textContent = g.titolo;
+
+  document.getElementById('guida-flusso').innerHTML =
+    g.flusso.map((p, i) =>
+      `<li><span class="guida-step-num">${i + 1}</span><span>${p}</span></li>`
+    ).join('');
+
+  document.getElementById('guida-funzioni').innerHTML =
+    g.funzioni.map(f =>
+      `<li><i class="fas ${f.ic} guida-fn-ic"></i><span>${f.txt}</span></li>`
+    ).join('');
+
+  openModal('modal-guida');
+}
