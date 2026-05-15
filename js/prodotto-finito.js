@@ -35,6 +35,7 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
   document.getElementById('import-qty-file').addEventListener('change', importaQuantita);
   document.getElementById('ripristina-csv-file').addEventListener('change', ripristinaDaCSV);
+  document.getElementById('aggiorna-partite-file').addEventListener('change', aggiornaPartiteDaCSV);
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
@@ -892,6 +893,96 @@ async function ripristinaDaCSV(e) {
 
     } catch (err) {
       console.error("Errore ripristino CSV:", err);
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = `Errore: ${err.message}`;
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+// ─── Aggiorna partita e ubicazione da CSV (abbina per SKU) ──────
+async function aggiornaPartiteDaCSV(e) {
+  const file     = e.target.files[0];
+  const statusEl = document.getElementById('import-qty-status');
+  if (!file) return;
+  e.target.value = '';
+
+  statusEl.style.color = 'var(--text-muted)';
+  statusEl.textContent = 'Lettura CSV…';
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const wb   = XLSX.read(ev.target.result, { type: 'string', FS: ';' });
+      const rows = XLSX.utils.sheet_to_json(
+        wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }
+      );
+
+      const hdr   = (rows[0] ?? []).map(h => String(h).trim().toLowerCase());
+      const iSku  = hdr.findIndex(h => h === 'cod.');
+      const iPart = hdr.findIndex(h => h === 'libero 4' || h.includes('libero'));
+      const iUbic = hdr.findIndex(h => h === 'ubicazione');
+
+      if (iSku === -1 || iPart === -1) {
+        throw new Error('Colonne non trovate. Usa il file Prodotti-11-5-26.csv con le colonne: Cod., Libero 4, Ubicazione');
+      }
+
+      // Mappa SKU → {partita, ubicazione} dal CSV
+      const csvMap = new Map();
+      for (let i = 1; i < rows.length; i++) {
+        const row  = rows[i];
+        const sku  = String(row[iSku]  ?? '').trim();
+        const part = String(row[iPart] ?? '').trim();
+        const ubic = String(row[iUbic] ?? '').trim();
+        if (sku) csvMap.set(sku, { partita: part, ubicazione: ubic });
+      }
+
+      // Abbina ai prodotti finiti esistenti per SKU
+      const aggiornamenti = [];
+      tuttiProdottiFiniti.forEach(pf => {
+        if (!pf.sku) return;
+        const dati = csvMap.get(pf.sku);
+        if (!dati) return;
+        if (dati.partita === (pf.partita ?? '') && dati.ubicazione === (pf.ubicazione ?? '')) return;
+        aggiornamenti.push({ id: pf.id, sku: pf.sku, ...dati });
+      });
+
+      if (aggiornamenti.length === 0) {
+        statusEl.style.color = 'var(--success)';
+        statusEl.textContent = '✓ Tutti i prodotti hanno già partita e ubicazione aggiornate.';
+        return;
+      }
+
+      const preview = aggiornamenti.slice(0, 5).map(a =>
+        `SKU ${a.sku}: partita "${a.partita}" | ubicazione "${a.ubicazione}"`
+      ).join('\n');
+      const extra = aggiornamenti.length > 5 ? `\n…e altri ${aggiornamenti.length - 5}` : '';
+
+      if (!confirm(`Aggiornare partita e ubicazione per ${aggiornamenti.length} prodotti?\n\n${preview}${extra}\n\nProcedo?`)) {
+        statusEl.textContent = '';
+        return;
+      }
+
+      statusEl.textContent = 'Aggiornamento in corso…';
+
+      const CHUNK = 200;
+      for (let i = 0; i < aggiornamenti.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        aggiornamenti.slice(i, i + CHUNK).forEach(a => {
+          batch.update(doc(db, "prodotti_finiti", a.id), {
+            partita:    a.partita,
+            ubicazione: a.ubicazione
+          });
+        });
+        await batch.commit();
+      }
+
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = `✓ ${aggiornamenti.length} prodotti aggiornati con partita e ubicazione.`;
+      setTimeout(() => { statusEl.textContent = ''; }, 6000);
+
+    } catch (err) {
+      console.error("Errore aggiornamento partite:", err);
       statusEl.style.color = 'var(--danger)';
       statusEl.textContent = `Errore: ${err.message}`;
     }
