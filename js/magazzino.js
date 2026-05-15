@@ -183,6 +183,9 @@ async function aggiornaQuantita(idProdotto, azione) {
     });
   } catch (err) {
     console.error("Errore aggiornamento quantità:", err);
+    if (err?.code === 'resource-exhausted') {
+      alert('Firestore temporaneamente sovraccarico (troppe operazioni in poco tempo).\nAspetta 2-3 minuti e riprova.');
+    }
   }
 }
 
