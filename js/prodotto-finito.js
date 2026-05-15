@@ -680,11 +680,10 @@ async function salva(e) {
 
 // ─── Colori componenti (multicolore) ────────────────────────────
 function renderColoriComponentiForm() {
-  const container         = document.getElementById('colori-list');
-  const prodotti          = getProdotti().sort((a, b) => a.nome.localeCompare(b.nome));
-  const fornitori         = getFornitori();
+  const container           = document.getElementById('colori-list');
+  const prodotti            = getProdotti().sort((a, b) => a.nome.localeCompare(b.nome));
+  const fornitori           = getFornitori();
   const fornitorePrincipale = document.getElementById('pf-fornitore').value.trim();
-  const isIbridi          = fornitorePrincipale === 'IBRIDI';
 
   container.innerHTML = '';
 
@@ -692,13 +691,16 @@ function renderColoriComponentiForm() {
     const row = document.createElement('div');
     row.className = 'colore-form-row';
 
-    // Per non-IBRIDI: usa il fornitore principale come filtro automatico
-    const fornitoreEffettivo = isIbridi ? c.idFornitore : fornitorePrincipale;
-    if (!isIbridi) coloriComponentiForm[i].idFornitore = fornitorePrincipale;
+    // Preseleziona il fornitore principale se la riga non ha ancora un fornitore
+    const fornitoreRiga = c.idFornitore || fornitorePrincipale;
 
-    const filtrati = fornitoreEffettivo
+    const opzFornitori = fornitori.map(f =>
+      `<option value="${f.nome}" ${f.nome === fornitoreRiga ? 'selected' : ''}>${f.nome}</option>`
+    ).join('');
+
+    const filtrati = fornitoreRiga
       ? prodotti.filter(p =>
-          normalizzaFornitore(p.idFornitore) === normalizzaFornitore(fornitoreEffettivo)
+          normalizzaFornitore(p.idFornitore) === normalizzaFornitore(fornitoreRiga)
         )
       : prodotti;
 
@@ -706,20 +708,12 @@ function renderColoriComponentiForm() {
       `<option value="${p.id}" data-nome="${p.nome}" ${p.id === c.idProdotto ? 'selected' : ''}>${p.nome}</option>`
     ).join('');
 
-    // Select fornitore visibile solo per IBRIDI
-    const selectFornitoreHtml = isIbridi ? (() => {
-      const opzFornitori = fornitori.map(f =>
-        `<option value="${f.nome}" ${f.nome === c.idFornitore ? 'selected' : ''}>${f.nome}</option>`
-      ).join('');
-      return `<select class="colore-forn-sel" data-index="${i}">
-        <option value="">— Fornitore —</option>
-        ${opzFornitori}
-      </select>`;
-    })() : '';
-
     row.innerHTML = `
       <div class="colore-form-selects">
-        ${selectFornitoreHtml}
+        <select class="colore-forn-sel" data-index="${i}">
+          <option value="">— Fornitore —</option>
+          ${opzFornitori}
+        </select>
         <select class="colore-prod-sel" data-index="${i}">
           <option value="">— Colore materia prima —</option>
           ${opzProdotti}
@@ -735,19 +729,18 @@ function renderColoriComponentiForm() {
       </div>
     `;
 
-    if (isIbridi) {
-      row.querySelector('.colore-forn-sel').addEventListener('change', e => {
-        coloriComponentiForm[i].idFornitore = e.target.value;
-        coloriComponentiForm[i].idProdotto  = '';
-        coloriComponentiForm[i].nomeColore  = '';
-        renderColoriComponentiForm();
-      });
-    }
+    row.querySelector('.colore-forn-sel').addEventListener('change', e => {
+      coloriComponentiForm[i].idFornitore = e.target.value;
+      coloriComponentiForm[i].idProdotto  = '';
+      coloriComponentiForm[i].nomeColore  = '';
+      renderColoriComponentiForm();
+    });
 
     row.querySelector('.colore-prod-sel').addEventListener('change', e => {
       const opt = e.target.selectedOptions[0];
-      coloriComponentiForm[i].idProdotto = e.target.value;
-      coloriComponentiForm[i].nomeColore = opt?.dataset.nome ?? '';
+      coloriComponentiForm[i].idProdotto  = e.target.value;
+      coloriComponentiForm[i].nomeColore  = opt?.dataset.nome ?? '';
+      coloriComponentiForm[i].idFornitore = fornitoreRiga;
       aggiornaTotalePercColori();
     });
 
