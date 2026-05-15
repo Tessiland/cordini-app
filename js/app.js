@@ -4,7 +4,7 @@ import { initNav, initModals }     from './nav.js';
 import { initFornitori }           from './fornitori.js';
 import { initTipologie }           from './tipologie.js';
 import { initMagazzino, setOperatore } from './magazzino.js';
-import { initProdottoFinito, setOperatorePF, rimuoviSuffissoMulticolore } from './prodotto-finito.js';
+import { initProdottoFinito, setOperatorePF } from './prodotto-finito.js';
 import { initCatalogo }                       from './catalogo.js';
 import { initOrdiniProduzione }               from './ordini-produzione.js';
 import { initOrdiniFornitori }               from './ordini-fornitori.js';
@@ -40,7 +40,6 @@ async function main() {
     try { await initTipologie(db); } catch (e) { console.error('initTipologie:', e); }
     initMagazzino(db);
     initProdottoFinito(db);
-    document.getElementById('rimuovi-multicolore-btn')?.addEventListener('click', rimuoviSuffissoMulticolore);
     try { initCatalogo(db, user.email); } catch (e) { console.error('initCatalogo:', e); }
     try { initOrdiniProduzione(db, user.email); } catch (e) { console.error('initOrdiniProduzione:', e); }
     try { initOrdiniFornitori(db); } catch (e) { console.error('initOrdiniFornitori:', e); }

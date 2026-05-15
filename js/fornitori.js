@@ -10,7 +10,6 @@ export async function initFornitori(firestoreDb) {
   db = firestoreDb;
   await carica();
 
-  document.getElementById('unifica-fornitori-btn')?.addEventListener('click', eseguiUnificazione);
 }
 
 async function carica() {
