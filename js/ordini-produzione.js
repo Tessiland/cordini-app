@@ -29,11 +29,23 @@ function caricaOrdini() {
   }, err => console.error("Errore caricamento ordini produzione:", err));
 }
 
-// ─── Sort: alfabetico per nome (tipologia + colore già nel nome) ──
+// ─── Sort: per ubicazione alfabetica, senza ubicazione in fondo ──
 function sortItems(items) {
-  return [...items].sort((a, b) =>
-    (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' })
-  );
+  const pfCache = getProdottiFiniti();
+  return [...items].sort((a, b) => {
+    const pfA = a.idProdottoFinito ? pfCache.find(p => p.id === a.idProdottoFinito) : null;
+    const pfB = b.idProdottoFinito ? pfCache.find(p => p.id === b.idProdottoFinito) : null;
+    const ubA = pfA?.ubicazione?.trim() || null;
+    const ubB = pfB?.ubicazione?.trim() || null;
+
+    if (!ubA && !ubB) return (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' });
+    if (!ubA) return 1;
+    if (!ubB) return -1;
+
+    const cmp = ubA.localeCompare(ubB, 'it', { sensitivity: 'base' });
+    if (cmp !== 0) return cmp;
+    return (a.nome ?? '').localeCompare(b.nome ?? '', 'it', { sensitivity: 'base' });
+  });
 }
 
 // ─── Render ──────────────────────────────────────────────────────

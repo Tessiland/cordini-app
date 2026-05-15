@@ -2159,6 +2159,7 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 ================================================================ */
 
 @media print {
+  html, body { background: #fff !important; color: #000 !important; }
   body > *:not(#print-area) { display: none !important; }
   #print-area {
     display: block !important;

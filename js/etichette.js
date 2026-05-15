@@ -112,7 +112,7 @@ export function stampaEtichetta(prodotto) {
     : (prodotto.colore || '—');
 
   document.getElementById('stampa-preview').textContent = `${prodotto.nome} — ${colore}`;
-  document.getElementById('stampa-qty').value = prodotto.quantitaRocche > 0 ? prodotto.quantitaRocche : 1;
+  document.getElementById('stampa-qty').value = '';
 
   import('./nav.js').then(({ openModal }) => openModal('modal-stampa-etichette'));
 }
