@@ -134,14 +134,14 @@ function creaLabelHtml(prodotto, descrizione) {
     : (prodotto.colore || '—');
   return `
     <div class="print-label">
-      <div class="print-label-top">
-        <span class="print-label-tipo">${prodotto.nome ?? '—'}</span>
-        <span class="print-label-colore">${colore}</span>
-      </div>
-      <div class="print-label-desc">${descrizione}</div>
+      <div class="print-label-tipo">${prodotto.nome ?? '—'}</div>
+      <div class="print-label-colore">${colore}</div>
       <div class="print-label-partita">${prodotto.partita || '—'}</div>
+      <div class="print-label-sep"></div>
+      <div class="print-label-desc">${descrizione}</div>
       ${prodotto.sku
-        ? `<div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
+        ? `<div class="print-label-sep"></div>
+           <div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
         : ''}
     </div>`;
 }
@@ -158,19 +158,18 @@ function eseguiStampa(prodotto, descrizione, qty) {
       JsBarcode(svg, prodotto.sku, {
         format:       'CODE128',
         width:        2,
-        height:       40,
+        height:       38,
         displayValue: true,
         fontSize:     8,
-        margin:       2,
-        textMargin:   2,
+        margin:       1,
+        textMargin:   1,
         background:   '#ffffff',
         lineColor:    '#000000'
       });
-      // Forza le dimensioni in mm dopo che JsBarcode ha impostato px
       svg.removeAttribute('width');
       svg.removeAttribute('height');
-      svg.style.width  = '49mm';
-      svg.style.height = '8mm';
+      svg.style.width  = '60mm';
+      svg.style.height = '10mm';
     });
   }
 
@@ -181,11 +180,11 @@ function eseguiStampa(prodotto, descrizione, qty) {
     document.head.appendChild(styleEl);
   }
   styleEl.textContent = `
-    @page { size: 50mm 20mm; margin: 0.5mm; }
+    @page { size: 62mm 36mm; margin: 0.5mm; }
     #print-area {
       position: static !important;
       padding: 0 !important;
-      width: 49mm !important;
+      width: 61mm !important;
       overflow: hidden !important;
       background: #fff;
     }
