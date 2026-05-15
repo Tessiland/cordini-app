@@ -5,7 +5,7 @@ import {
 import { openModal, closeModal } from './nav.js';
 import { aggiornaDatalists } from './tipologie.js';
 import { getProdotti } from './magazzino.js';
-import { getFornitori } from './fornitori.js';
+import { getFornitori, normalizzaFornitore } from './fornitori.js';
 import { stampaEtichetta } from './etichette.js';
 
 let db;
@@ -697,7 +697,9 @@ function renderColoriComponentiForm() {
     if (!isIbridi) coloriComponentiForm[i].idFornitore = fornitorePrincipale;
 
     const filtrati = fornitoreEffettivo
-      ? prodotti.filter(p => p.idFornitore === fornitoreEffettivo)
+      ? prodotti.filter(p =>
+          normalizzaFornitore(p.idFornitore) === normalizzaFornitore(fornitoreEffettivo)
+        )
       : prodotti;
 
     const opzProdotti = filtrati.map(p =>
