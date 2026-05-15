@@ -223,29 +223,6 @@
           <input type="text" id="search-catalogo" class="input-search" placeholder="Cerca per nome o SKU…">
         </div>
 
-        <!-- Import Excel — visibile a tutti, operazioni protette da confirm -->
-        <div id="import-card" class="upload-card">
-          <h3>Importa Prodotti da Excel</h3>
-          <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.875rem">
-            Seleziona il file .xlsx — i dati vengono scritti nel Magazzino Prodotto Finito.
-          </p>
-          <div class="field-group">
-            <label for="import-file">File Excel (.xlsx)</label>
-            <input type="file" id="import-file" accept=".xlsx,.xls">
-          </div>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem">
-            <button id="import-btn" class="btn-primary">
-              <i class="fas fa-file-import"></i> Avvia Import
-            </button>
-            <button id="update-qty-btn" class="btn-secondary btn-sm">
-              <i class="fas fa-arrows-rotate"></i> Aggiorna quantità da Excel
-            </button>
-            <button id="clear-pf-btn" class="btn-danger btn-sm">
-              <i class="fas fa-trash"></i> Cancella tutti
-            </button>
-          </div>
-          <p id="import-status" style="font-size:.8rem;margin-top:.625rem;min-height:1.2em"></p>
-        </div>
 
         <div id="list-catalogo" class="catalogo-list">
           <p class="empty-state">Nessun prodotto in catalogo.</p>
