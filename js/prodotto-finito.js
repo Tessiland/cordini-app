@@ -1,6 +1,6 @@
 import {
   collection, query, orderBy, onSnapshot, doc,
-  addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp
+  addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
 import { aggiornaDatalists } from './tipologie.js';
@@ -33,6 +33,7 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
+  document.getElementById('import-qty-file').addEventListener('change', importaQuantita);
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
@@ -773,6 +774,116 @@ function aggiornaTotalePercColori() {
   const el  = document.getElementById('pf-perc-totale-colori');
   el.textContent = `${tot}%`;
   el.className   = `perc-totale${tot === 100 ? ' ok' : tot > 100 ? ' errore' : ''}`;
+}
+
+// ─── Import quantità da Excel ────────────────────────────────────
+async function importaQuantita(e) {
+  const file     = e.target.files[0];
+  const statusEl = document.getElementById('import-qty-status');
+  if (!file) return;
+  e.target.value = '';
+
+  statusEl.style.color = 'var(--text-muted)';
+  statusEl.textContent = 'Lettura file…';
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const wb   = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(
+        wb.Sheets[wb.SheetNames[0]], { header: 1 }
+      );
+
+      // Normalizza header (trim spazi e lowercase)
+      const hdr    = (rows[0] ?? []).map(h => String(h ?? '').trim().toLowerCase());
+      const iSku   = hdr.findIndex(h => h === 'sku');
+      const iQty   = hdr.findIndex(h => h.replace(/\s/g, '') === 'q.tà' || h.replace(/\s/g, '') === 'qty' || h === 'quantita' || h === 'quantità');
+
+      if (iSku === -1 || iQty === -1) {
+        throw new Error('Colonne non trovate. Il file deve avere: sku, Q.tà');
+      }
+
+      // Mappa SKU → prima partita valida (oldest createdAt, non eliminata)
+      const pfPerSku = {};
+      tuttiProdottiFiniti.filter(p => p.sku && !p.eliminato).forEach(p => {
+        if (!pfPerSku[p.sku]) pfPerSku[p.sku] = [];
+        pfPerSku[p.sku].push(p);
+      });
+      const skuMap = new Map();
+      for (const [sku, partite] of Object.entries(pfPerSku)) {
+        partite.sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
+        skuMap.set(sku, partite[0]);
+      }
+
+      // Leggi righe
+      const aggiornamenti = [];
+      const nonTrovati    = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row) continue;
+        const sku = String(row[iSku] ?? '').trim();
+        const qty = Number(row[iQty]);
+        if (!sku || isNaN(qty) || qty < 0) continue;
+
+        const pf = skuMap.get(sku);
+        if (!pf) { nonTrovati.push(sku); continue; }
+
+        aggiornamenti.push({ pf, nuovaQty: Math.round(qty) });
+      }
+
+      if (aggiornamenti.length === 0) {
+        statusEl.style.color = 'var(--warning)';
+        statusEl.textContent = `Nessun prodotto trovato. ${nonTrovati.length} SKU non abbinati.`;
+        return;
+      }
+
+      // Anteprima
+      const preview = aggiornamenti.slice(0, 5).map(a =>
+        `${a.pf.nome} — ${a.pf.colore}: ${a.pf.quantitaRocche ?? 0} → ${a.nuovaQty}`
+      ).join('\n');
+      const extra = aggiornamenti.length > 5 ? `\n…e altri ${aggiornamenti.length - 5}` : '';
+      const nonTrovatiMsg = nonTrovati.length > 0 ? `\n\n⚠ ${nonTrovati.length} SKU non trovati` : '';
+
+      if (!confirm(`Aggiornare ${aggiornamenti.length} prodotti?\n\n${preview}${extra}${nonTrovatiMsg}\n\nProcedo?`)) {
+        statusEl.textContent = '';
+        return;
+      }
+
+      statusEl.textContent = 'Aggiornamento in corso…';
+
+      // Batch a blocchi da 200 (400 ops/batch)
+      const CHUNK = 200;
+      for (let i = 0; i < aggiornamenti.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        aggiornamenti.slice(i, i + CHUNK).forEach(({ pf, nuovaQty }) => {
+          const ref = doc(db, "prodotti_finiti", pf.id);
+          batch.update(ref, { quantitaRocche: nuovaQty });
+          batch.set(doc(collection(db, "movimenti_pf")), {
+            idProdotto:   pf.id,
+            nomeProdotto: `${pf.fornitore} — ${pf.nome} — ${pf.colore}`,
+            tipo:         'carico',
+            quantita:     nuovaQty,
+            quantitaDopo: nuovaQty,
+            nota:         'Import da Excel',
+            operatore:    operatoreCorrente,
+            timestamp:    serverTimestamp()
+          });
+        });
+        await batch.commit();
+      }
+
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = `✓ ${aggiornamenti.length} prodotti aggiornati${nonTrovati.length > 0 ? ` · ${nonTrovati.length} SKU non trovati` : ''}.`;
+      setTimeout(() => { statusEl.textContent = ''; }, 5000);
+
+    } catch (err) {
+      console.error("Errore import quantità:", err);
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = `Errore: ${err.message}`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 // ─── Migrazione one-time: rimuove suffisso "Multicolore" dal campo colore ──

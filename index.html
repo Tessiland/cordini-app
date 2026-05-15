@@ -86,13 +86,18 @@
           <div class="filter-row">
             <input type="text" id="search-pf" class="input-search" placeholder="Cerca fornitore, cordino o colore…">
           </div>
-          <div style="display:flex;gap:.5rem;margin-bottom:.875rem;flex-wrap:wrap">
+          <div style="display:flex;gap:.5rem;margin-bottom:.875rem;flex-wrap:wrap;align-items:center">
             <button id="add-pf-btn" class="btn-primary btn-sm">
               <i class="fas fa-plus"></i> Aggiungi Prodotto Finito
             </button>
             <button id="toggle-archivio-pf" class="btn-ghost btn-sm">
               <i class="fas fa-archive"></i> Archivio Eliminati
             </button>
+            <label class="btn-ghost btn-sm" style="cursor:pointer;margin:0">
+              <i class="fas fa-file-excel"></i> Import Quantità
+              <input type="file" id="import-qty-file" accept=".xlsx,.xls" style="display:none">
+            </label>
+            <span id="import-qty-status" style="font-size:.75rem;color:var(--text-muted)"></span>
           </div>
           <div id="list-prodotto-finito" class="pf-accordion"></div>
           <div id="list-archivio-pf" class="hidden"></div>
