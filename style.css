@@ -1518,6 +1518,28 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   flex-shrink: 0;
 }
 
+/* Mobile: azioni PF su riga separata */
+@media (max-width: 480px) {
+  .pf-color-row {
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+  }
+  .pf-color-info { flex-basis: calc(100% - 70px); }
+  .pf-color-actions {
+    order: 3;
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 0.25rem;
+    border-top: 1px solid var(--border-soft);
+    margin-top: 0.25rem;
+  }
+  .pf-partita-row {
+    flex-wrap: wrap;
+    padding: .4rem .75rem;
+  }
+  .pf-partita-info { flex-basis: 100%; }
+}
+
 .pf-qty-btn {
   width: 34px;
   height: 34px;
@@ -2276,6 +2298,10 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 }
 
 .print-doc { color: #111; font-family: Arial, sans-serif; }
+
+@media print {
+  .print-doc { padding: 1.5cm 1.5cm 2cm; }
+}
 
 .print-header { margin-bottom: 1rem; }
 .print-header h1 {

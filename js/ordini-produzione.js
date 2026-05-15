@@ -543,7 +543,8 @@ function stampaLista(ordine) {
     </tr>`;
   }).join('');
 
-  const daProdurre = items.filter(i => !i.idProdottoFinito || (pfMap.get(i.idProdottoFinito)?.quantitaRocche ?? 0) === 0).length;
+  const daProdurre  = items.filter(i => !i.idProdottoFinito || (pfMap.get(i.idProdottoFinito)?.quantitaRocche ?? 0) === 0).length;
+  const totCartoni  = items.reduce((s, i) => s + Math.ceil((i.qtyRichiesta || 0) / 30), 0);
 
   eseguiStampa(`
     <div class="print-doc">
@@ -567,6 +568,7 @@ function stampaLista(ordine) {
       </table>
       <div class="print-footer">
         Totale: ${items.length} articoli · Da produrre / stock 0: ${daProdurre}
+        &nbsp;&nbsp;|&nbsp;&nbsp; <strong>NUMERO DI CARTONI: ${totCartoni}</strong>
       </div>
     </div>
   `);
