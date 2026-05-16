@@ -149,10 +149,10 @@ function generaAlertAutomatici(prodottiFiniti, prodottiMP, rotazioni) {
     let livello;
     if (settimaneTotali < SOGLIA_ROSSO || (haConflittiCritici && settimaneStock < SOGLIA_ROSSO)) {
       livello = 'rosso';
-    } else if (settimaneTotali < SOGLIA_ARANCIO || conflitti.length > 0) {
+    } else if (settimaneTotali < SOGLIA_ARANCIO) {
       livello = 'arancio';
     } else {
-      return; // verde, non mostrare
+      return; // verde, non mostrare — i conflitti MP sono info nel dettaglio, non alzano il livello se copertura ok
     }
 
     alerts.push({ tipo: 'auto', livello, pf, rotazione, stock, producibilita,
@@ -328,10 +328,23 @@ function creaRigaAuto(a) {
           Stessa MP usata da:
           ${conflitti.map(c => `<strong>${c.nome}</strong>${c.rapporto ? ` (${c.rapporto.toFixed(1)}×)` : ''}`).join(', ')}
         </div>` : ''}
+      <div style="margin-top:.5rem">
+        <button class="btn-ghost btn-sm btn-ghost-danger archivia-pf-btn" data-id="${pf.id}" data-nome="${pf.nome} — ${pf.colore}">
+          <i class="fas fa-ban"></i> Archivia come eliminato
+        </button>
+      </div>
     </div>
   `;
 
   row.querySelector('.alert-row-summary').addEventListener('click', () => toggleRiga(row));
+  row.querySelector('.archivia-pf-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    if (!confirm(`Archiviare "${btn.dataset.nome}" come eliminato?\nNon sarà più visibile nel magazzino né negli alert.`)) return;
+    updateDoc(doc(db, "prodotti_finiti", btn.dataset.id), { eliminato: true })
+      .catch(err => alert(`Errore: ${err.message}`));
+  });
+
   return row;
 }
 
