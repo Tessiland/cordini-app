@@ -106,18 +106,18 @@
           <div style="display:flex;align-items:center;gap:.5rem">
             <button class="guida-btn" data-guida="alert" title="Guida"><i class="fas fa-circle-info"></i></button>
             <button id="add-alert-btn" class="btn-warning btn-sm">
-              <i class="fas fa-plus"></i> Nuovo manuale
+              <i class="fas fa-plus"></i> Nuovo
             </button>
           </div>
-        <div class="tab-bar">
-          <button class="tab-btn active" data-tab="alert-auto">Automatici</button>
-          <button class="tab-btn" data-tab="alert-manuali">Manuali</button>
         </div>
-        <div id="tab-alert-auto" class="tab-content active">
+        <div class="alert-chip-bar">
+          <button class="alert-chip active" data-filtro="tutti">Tutti</button>
+          <button class="alert-chip" data-filtro="rosso">🔴 <span id="alert-count-rosso">0</span></button>
+          <button class="alert-chip" data-filtro="arancio">🟠 <span id="alert-count-arancio">0</span></button>
+          <button class="alert-chip" data-filtro="manuale">📌 <span id="alert-count-manuale">0</span></button>
+        </div>
+        <div id="alert-inbox">
           <p class="empty-state">Caricamento…</p>
-        </div>
-        <div id="tab-alert-manuali" class="tab-content">
-          <p class="empty-state">Nessun alert manuale.</p>
         </div>
       </section>
 
@@ -485,7 +485,8 @@
           <i class="fas fa-xmark"></i>
         </button>
       </div>
-      <form id="form-alert">
+      <form id="form-alert" data-mode="add" data-id="">
+        <input type="hidden" id="a-id">
         <div class="field-group">
           <label for="a-prodotto">Prodotto</label>
           <select id="a-prodotto" required></select>
@@ -497,14 +498,14 @@
         <div class="field-group">
           <label for="a-livello">Priorità</label>
           <select id="a-livello">
-            <option value="critical">Critico</option>
-            <option value="warning" selected>Attenzione</option>
-            <option value="info">Informativo</option>
+            <option value="critical">🔴 Critico</option>
+            <option value="warning" selected>🟠 Attenzione</option>
+            <option value="info">🔵 Informativo</option>
           </select>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-secondary modal-close" data-modal="modal-alert">Annulla</button>
-          <button type="submit" class="btn-primary">Crea Alert</button>
+          <button type="submit" id="a-submit-btn" class="btn-primary">Crea Alert</button>
         </div>
       </form>
     </div>

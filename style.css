@@ -2549,18 +2549,33 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 }
 
 /* ── Alert dashboard compatta ────────────────────────────────────── */
-.alert-counter-bar {
+/* chip filtri */
+.alert-chip-bar {
   display: flex;
-  gap: 1rem;
-  padding: .625rem .75rem;
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  gap: .4rem;
   margin-bottom: .75rem;
+  flex-wrap: wrap;
 }
-.alert-counter { font-size: .8rem; font-weight: 700; }
-.alert-counter.rosso   { color: var(--danger); }
-.alert-counter.arancio { color: var(--warning); }
+.alert-chip {
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--ease);
+}
+.alert-chip:hover  { background: var(--bg-elevated); }
+.alert-chip.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* pin manuale */
+.alert-row-pin { font-size: .85rem; flex-shrink: 0; }
 
 .alert-rows { display: flex; flex-direction: column; gap: 0; }
 
