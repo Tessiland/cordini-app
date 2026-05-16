@@ -162,68 +162,79 @@ function renderAutomatici(alerts) {
     return;
   }
 
-  container.innerHTML = '';
+  const nRossi   = alerts.filter(a => a.livello === 'rosso').length;
+  const nArancio = alerts.filter(a => a.livello === 'arancio').length;
+
+  container.innerHTML = `
+    <div class="alert-counter-bar">
+      <span class="alert-counter rosso">🔴 ${nRossi} critico${nRossi !== 1 ? 'i' : ''}</span>
+      <span class="alert-counter arancio">🟠 ${nArancio} attenzion${nArancio !== 1 ? 'e' : 'e'}</span>
+    </div>
+    <div class="alert-rows"></div>
+  `;
+
+  const rowsEl = container.querySelector('.alert-rows');
+
   alerts.forEach(a => {
     const { pf, livello, rotazione, stock, producibilita,
       settimaneStock, settimaneProd, settimaneTotali, conflitti } = a;
 
-    const badgeClass = livello === 'rosso' ? 'alert-badge-rosso' : 'alert-badge-arancio';
-    const badgeTesto = livello === 'rosso' ? '🔴 Critico' : '🟠 Attenzione';
+    const conflittoIco = conflitti.length > 0
+      ? `<i class="fas fa-triangle-exclamation alert-row-warn" title="Conflitto materia prima"></i>` : '';
 
-    const prodHtml = producibilita !== null
-      ? `<div class="alert-metrica">
-           <span class="alert-metrica-label">Producibile</span>
-           <span class="alert-metrica-val">${producibilita} rocche</span>
-           <span class="alert-metrica-sett">${fmt(settimaneProd)} sett.</span>
-         </div>`
-      : `<div class="alert-metrica alert-metrica-nd">
-           <span class="alert-metrica-label">Producibile</span>
-           <span class="alert-metrica-val nd">N/D</span>
-           <span class="alert-metrica-hint">kgPerCartone mancante</span>
-         </div>`;
+    const settCol = settimaneTotali < SOGLIA_ROSSO ? 'sett-rosso'
+      : settimaneTotali < SOGLIA_ARANCIO ? 'sett-arancio' : '';
 
-    const conflittiHtml = conflitti.length > 0 ? `
-      <div class="alert-conflitti">
-        <i class="fas fa-triangle-exclamation"></i>
-        <span>Stessa MP usata da prodotti a rotazione più alta:</span>
-        <ul>
-          ${conflitti.map(c => `
-            <li>${c.nome}
-              ${c.rapporto ? `<span class="conflitto-rapporto">${c.rapporto.toFixed(1)}×</span>` : ''}
-            </li>`).join('')}
-        </ul>
-      </div>` : '';
-
-    const card = document.createElement('div');
-    card.className = `alert-card ${livello}`;
-    card.innerHTML = `
-      <div class="alert-card-header">
-        <div>
-          <div class="alert-card-nome">${pf.nome ?? '—'} — ${pf.colore ?? '—'}</div>
-          <div class="alert-card-forn">${pf.fornitore ?? ''}</div>
+    const row = document.createElement('div');
+    row.className = `alert-row ${livello}`;
+    row.innerHTML = `
+      <div class="alert-row-summary">
+        <span class="alert-row-bullet ${livello}"></span>
+        <div class="alert-row-nome">
+          <span class="alert-row-prodotto">${pf.nome ?? '—'}</span>
+          <span class="alert-row-colore">${pf.colore ?? '—'}</span>
         </div>
-        <span class="${badgeClass}">${badgeTesto}</span>
+        <span class="alert-row-sett ${settCol}">${fmt(settimaneTotali)} sett.</span>
+        ${conflittoIco}
+        <i class="fas fa-chevron-right alert-row-chevron"></i>
       </div>
-      <div class="alert-metriche">
-        <div class="alert-metrica">
-          <span class="alert-metrica-label">Rotazione media</span>
-          <span class="alert-metrica-val">${fmt(rotazione)} rocche/sett</span>
-          <span class="alert-metrica-hint">ultimi ${GIORNI} giorni</span>
+      <div class="alert-row-detail hidden">
+        <div class="alert-detail-grid">
+          <div class="alert-detail-item">
+            <span class="alert-detail-label">Rotazione</span>
+            <span class="alert-detail-val">${fmt(rotazione)} rocche/sett</span>
+          </div>
+          <div class="alert-detail-item">
+            <span class="alert-detail-label">Stock</span>
+            <span class="alert-detail-val">${stock} rocche (${fmt(settimaneStock)} sett.)</span>
+          </div>
+          <div class="alert-detail-item">
+            <span class="alert-detail-label">Producibile</span>
+            <span class="alert-detail-val">${producibilita !== null ? `${producibilita} rocche (${fmt(settimaneProd)} sett.)` : 'N/D — kgPerCartone mancante'}</span>
+          </div>
+          <div class="alert-detail-item">
+            <span class="alert-detail-label">Fornitore</span>
+            <span class="alert-detail-val">${pf.fornitore ?? '—'}</span>
+          </div>
         </div>
-        <div class="alert-metrica">
-          <span class="alert-metrica-label">Stock attuale</span>
-          <span class="alert-metrica-val">${stock} rocche</span>
-          <span class="alert-metrica-sett">${fmt(settimaneStock)} sett.</span>
-        </div>
-        ${prodHtml}
-        <div class="alert-metrica alert-metrica-totale ${livello}">
-          <span class="alert-metrica-label">Copertura totale</span>
-          <span class="alert-metrica-val">${fmt(settimaneTotali)} settimane</span>
-        </div>
+        ${conflitti.length > 0 ? `
+          <div class="alert-conflitti">
+            <i class="fas fa-triangle-exclamation"></i>
+            Stessa MP usata da:
+            ${conflitti.map(c => `<strong>${c.nome}</strong>${c.rapporto ? ` (${c.rapporto.toFixed(1)}×)` : ''}`).join(', ')}
+          </div>` : ''}
       </div>
-      ${conflittiHtml}
     `;
-    container.appendChild(card);
+
+    row.querySelector('.alert-row-summary').addEventListener('click', () => {
+      const detail  = row.querySelector('.alert-row-detail');
+      const chevron = row.querySelector('.alert-row-chevron');
+      const open    = row.classList.toggle('open');
+      detail.classList.toggle('hidden', !open);
+      chevron.style.transform = open ? 'rotate(90deg)' : '';
+    });
+
+    rowsEl.appendChild(row);
   });
 }
 
