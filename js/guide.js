@@ -29,19 +29,20 @@ const GUIDE = {
   alert: {
     titolo: 'Alert',
     flusso: [
-      'Ogni mattina controlla la tab <b>Automatici</b> — i prodotti rossi sono quelli più urgenti.',
-      'Per ogni alert rosso leggi la <b>copertura totale</b>: se è solo stock (producibilità N/D), hai meno margine.',
-      'Se vedi il box giallo <b>"conflitto MP"</b>, quella materia prima serve anche ad altri prodotti che escono di più — valuta bene prima di usarla.',
-      'Usa <b>Nuovo manuale</b> per segnalare situazioni che l\'app non può rilevare da sola (es. tutorial in uscita, promozioni imminenti).',
+      'Ogni mattina guarda la lista — è ordinata per urgenza, i rossi sono in cima.',
+      'Usa i <b>chip filtro</b> in cima per vedere solo i critici 🔴, solo le attenzioni 🟠, o solo i manuali 📌.',
+      'Clicca su qualsiasi riga per espandere il dettaglio: rotazione, stock, producibilità, conflitti.',
+      'Per segnalare un evento futuro (tutorial, promozione) clicca <b>+ Nuovo</b>: scegli il prodotto, scrivi le note e inserisci la data dell\'evento. Il sistema decide automaticamente la priorità.',
+      'La priorità degli alert si aggiorna da sola ogni volta che il magazzino cambia — non devi fare nulla.',
     ],
     funzioni: [
-      { ic: 'fa-circle',         txt: '<b>🔴 Critico</b> — copertura totale sotto 4 settimane: agire subito' },
-      { ic: 'fa-circle',         txt: '<b>🟠 Attenzione</b> — copertura 4–8 settimane, o conflitto con prodotti ad alta rotazione' },
-      { ic: 'fa-chart-line',     txt: '<b>Rotazione media</b> — rocche uscite a settimana negli ultimi 60 giorni' },
-      { ic: 'fa-box-open',       txt: '<b>Producibile</b> — rocche ricavabili dalla materia prima in magazzino (N/D se kgPerCartone mancante)' },
-      { ic: 'fa-shield-halved',  txt: '<b>Copertura totale</b> — settimane garantite sommando stock attuale + producibilità' },
-      { ic: 'fa-triangle-exclamation', txt: '<b>Conflitto MP</b> — la stessa materia prima è usata da un prodotto con rotazione più alta' },
-      { ic: 'fa-trash',          txt: '<b>Elimina</b> — rimuove un alert manuale (gli automatici si aggiornano da soli)' },
+      { ic: 'fa-circle',              txt: '<b>🔴 Critico automatico</b> — stock a zero, oppure copertura sotto 4 settimane' },
+      { ic: 'fa-circle',              txt: '<b>🟠 Attenzione automatico</b> — copertura 4–8 settimane, o conflitto materia prima' },
+      { ic: 'fa-thumbtack',           txt: '<b>📌 Alert manuale</b> — evento segnalato dall\'operatore (tutorial, promozione…). Il livello è calcolato dal sistema in base allo stock e alla data evento' },
+      { ic: 'fa-chart-line',          txt: '<b>Rotazione</b> — rocche uscite in media per settimana negli ultimi 60 giorni' },
+      { ic: 'fa-shield-halved',       txt: '<b>Copertura</b> — settimane garantite da stock attuale + producibilità dalla materia prima' },
+      { ic: 'fa-triangle-exclamation',txt: '<b>Conflitto MP</b> — la stessa materia prima serve a un prodotto con rotazione più alta' },
+      { ic: 'fa-pen',                 txt: '<b>Modifica alert manuale</b> — aggiorna note o data evento; il sistema rivaluta subito la priorità' },
     ]
   },
 
