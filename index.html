@@ -492,17 +492,17 @@
           <select id="a-prodotto" required></select>
         </div>
         <div class="field-group">
-          <label for="a-motivo">Motivo</label>
-          <input type="text" id="a-motivo" placeholder="Es. Tutorial in uscita — Cordino 3mm Naturale" required>
+          <label for="a-note">Note <span style="color:var(--text-muted);font-weight:400">(es. Tutorial YouTuber X in uscita)</span></label>
+          <input type="text" id="a-note" placeholder="Descrivi l'evento atteso" required>
         </div>
         <div class="field-group">
-          <label for="a-livello">Priorità</label>
-          <select id="a-livello">
-            <option value="critical">🔴 Critico</option>
-            <option value="warning" selected>🟠 Attenzione</option>
-            <option value="info">🔵 Informativo</option>
-          </select>
+          <label for="a-data-evento">Data evento <span style="color:var(--text-muted);font-weight:400">(opzionale — se non sai la data, lascia vuoto)</span></label>
+          <input type="date" id="a-data-evento">
         </div>
+        <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:.75rem;line-height:1.4">
+          <i class="fas fa-circle-info"></i>
+          Il sistema valuterà automaticamente la priorità in base allo stock attuale e alla data evento.
+        </p>
         <div class="modal-actions">
           <button type="button" class="btn-secondary modal-close" data-modal="modal-alert">Annulla</button>
           <button type="submit" id="a-submit-btn" class="btn-primary">Crea Alert</button>
