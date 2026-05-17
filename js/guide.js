@@ -36,13 +36,15 @@ const GUIDE = {
       'La priorità degli alert si aggiorna da sola ogni volta che il magazzino cambia — non devi fare nulla.',
     ],
     funzioni: [
-      { ic: 'fa-circle',              txt: '<b>🔴 Critico automatico</b> — stock a zero, oppure copertura sotto 4 settimane' },
-      { ic: 'fa-circle',              txt: '<b>🟠 Attenzione automatico</b> — copertura 4–8 settimane, o conflitto materia prima' },
+      { ic: 'fa-circle',              txt: '<b>🔴 Critico automatico</b> — stock a zero, oppure copertura sotto 4 settimane. Diventa rosso anche se c\'è un conflitto MP critico (rotazione 2× superiore) e lo stock è già sotto le 4 settimane' },
+      { ic: 'fa-circle',              txt: '<b>🟠 Attenzione automatico</b> — copertura totale tra 4 e 8 settimane. I conflitti MP da soli non generano questo alert: appaiono come informazione nel dettaglio' },
       { ic: 'fa-thumbtack',           txt: '<b>📌 Alert manuale</b> — evento segnalato dall\'operatore (tutorial, promozione…). Il livello è calcolato dal sistema in base allo stock e alla data evento' },
       { ic: 'fa-chart-line',          txt: '<b>Rotazione</b> — rocche uscite in media per settimana negli ultimi 60 giorni' },
       { ic: 'fa-shield-halved',       txt: '<b>Copertura</b> — settimane garantite da stock attuale + producibilità dalla materia prima' },
-      { ic: 'fa-triangle-exclamation',txt: '<b>Conflitto MP</b> — la stessa materia prima serve a un prodotto con rotazione più alta' },
+      { ic: 'fa-triangle-exclamation',txt: '<b>Conflitto MP</b> — la stessa materia prima serve a un prodotto con rotazione più alta; è solo informativo a meno che non sia critico (2×) con stock già basso' },
       { ic: 'fa-pen',                 txt: '<b>Modifica alert manuale</b> — aggiorna note o data evento; il sistema rivaluta subito la priorità' },
+      { ic: 'fa-ban',                 txt: '<b>Archivia come eliminato</b> — disponibile nel dettaglio di ogni alert automatico; sposta il prodotto finito nell\'archivio eliminati (non appare più in magazzino né negli alert)' },
+      { ic: 'fa-bell',                txt: '<b>Badge nav</b> — mostra solo il numero di alert 🔴 critici; si azzera quando non ce ne sono' },
     ]
   },
 
