@@ -273,6 +273,9 @@ function creaRigaPartita(p, isPrima) {
       <button class="pf-row-menu delete-pf-btn" data-id="${p.id}" data-nome="${p.colore}" title="Cancella definitivamente">
         <i class="fas fa-trash"></i>
       </button>
+      <button class="pf-row-menu print-label-btn" data-id="${p.id}" title="Stampa etichetta">
+        <i class="fas fa-tag"></i>
+      </button>
     </div>
   `;
 
