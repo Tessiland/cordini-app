@@ -1153,7 +1153,7 @@ async function apriStoricoMovimenti() {
   document.getElementById('storico-prodotto').value  = '';
   document.getElementById('storico-operatore').value = '';
   document.getElementById('storico-tipo').value      = '';
-  document.getElementById('storico-data').value      = '';
+  document.getElementById('storico-data').value      = new Date().toLocaleDateString('sv-SE');
   await caricaStoricoTab(storicoTabAttiva);
 }
 
