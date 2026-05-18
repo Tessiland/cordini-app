@@ -622,16 +622,20 @@
     </div>
   </div>
 
-  <!-- ===== MODAL STORICO MOVIMENTI PF ===== -->
+  <!-- ===== MODAL STORICO MOVIMENTI ===== -->
   <div id="modal-storico-movimenti" class="modal-overlay hidden">
     <div class="modal-panel" style="max-width:720px;width:100%">
       <div class="modal-header">
-        <h3 class="modal-title">Storico Movimenti — Prodotto Finito</h3>
+        <h3 class="modal-title">Storico Movimenti</h3>
         <button class="btn-icon modal-close" data-modal="modal-storico-movimenti">
           <i class="fas fa-xmark"></i>
         </button>
       </div>
-      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">
+      <div class="storico-tab-bar">
+        <button class="storico-tab active" data-storico-tab="pf">Prodotto Finito</button>
+        <button class="storico-tab" data-storico-tab="mp">Materia Prima</button>
+      </div>
+      <div class="storico-filters">
         <input type="text" id="storico-search" class="input-search" placeholder="Cerca prodotto…" style="flex:1;min-width:150px">
         <select id="storico-operatore" class="input-select" style="min-width:140px">
           <option value="">Tutti gli operatori</option>

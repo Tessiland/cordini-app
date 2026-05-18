@@ -34,9 +34,12 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
   document.getElementById('storico-movimenti-btn').addEventListener('click', apriStoricoMovimenti);
-  document.getElementById('storico-search').addEventListener('input', renderMovimentiPF);
-  document.getElementById('storico-operatore').addEventListener('change', renderMovimentiPF);
-  document.getElementById('storico-tipo').addEventListener('change', renderMovimentiPF);
+  document.getElementById('storico-search').addEventListener('input', renderStorico);
+  document.getElementById('storico-operatore').addEventListener('change', renderStorico);
+  document.getElementById('storico-tipo').addEventListener('change', renderStorico);
+  document.querySelectorAll('.storico-tab').forEach(btn =>
+    btn.addEventListener('click', () => caricaStoricoTab(btn.dataset.storicoTab))
+  );
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
@@ -1139,21 +1142,36 @@ export async function rimuoviSuffissoMulticolore() {
   }
 }
 
-// ─── Storico movimenti PF ────────────────────────────────────────
-let movimentiCache = [];
+// ─── Storico movimenti ───────────────────────────────────────────
+const storicoCache = { pf: [], mp: [] };
+let storicoTabAttiva = 'pf';
 
 async function apriStoricoMovimenti() {
   openModal('modal-storico-movimenti');
-  const el = document.getElementById('storico-movimenti-list');
+  document.getElementById('storico-search').value = '';
+  document.getElementById('storico-tipo').value   = '';
+  await caricaStoricoTab(storicoTabAttiva);
+}
+
+async function caricaStoricoTab(tab) {
+  storicoTabAttiva = tab;
+  document.querySelectorAll('.storico-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.storicoTab === tab)
+  );
+
+  const collez  = tab === 'pf' ? 'movimenti_pf' : 'movimenti';
+  const unita   = tab === 'pf' ? 'rocche' : 'cartoni';
+  const el      = document.getElementById('storico-movimenti-list');
+
   el.innerHTML = '<p class="empty-state">Caricamento…</p>';
   document.getElementById('storico-count').textContent = '';
 
   try {
-    const q    = query(collection(db, "movimenti_pf"), orderBy("timestamp", "desc"), limit(300));
+    const q    = query(collection(db, collez), orderBy("timestamp", "desc"), limit(300));
     const snap = await getDocs(q);
-    movimentiCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    storicoCache[tab] = snap.docs.map(d => ({ id: d.id, _unita: unita, ...d.data() }));
     popolaFiltroOperatori();
-    renderMovimentiPF();
+    renderStorico();
   } catch (err) {
     console.error("Errore caricamento storico:", err);
     el.innerHTML = '<p class="empty-state">Errore nel caricamento.</p>';
@@ -1161,25 +1179,26 @@ async function apriStoricoMovimenti() {
 }
 
 function popolaFiltroOperatori() {
-  const operatori = [...new Set(movimentiCache.map(m => m.operatore).filter(Boolean))].sort();
+  const dati      = storicoCache[storicoTabAttiva];
+  const operatori = [...new Set(dati.map(m => m.operatore).filter(Boolean))].sort();
   const sel       = document.getElementById('storico-operatore');
-  const corrente  = sel.value;
   sel.innerHTML   = '<option value="">Tutti gli operatori</option>' +
-    operatori.map(o => `<option value="${o}" ${o === corrente ? 'selected' : ''}>${o}</option>`).join('');
+    operatori.map(o => `<option value="${o}">${o}</option>`).join('');
 }
 
-function renderMovimentiPF() {
+function renderStorico() {
+  const dati      = storicoCache[storicoTabAttiva];
   const cerca     = document.getElementById('storico-search').value.toLowerCase().trim();
   const operatore = document.getElementById('storico-operatore').value;
   const tipo      = document.getElementById('storico-tipo').value;
 
-  let filtrati = movimentiCache;
+  let filtrati = dati;
   if (cerca)     filtrati = filtrati.filter(m => m.nomeProdotto?.toLowerCase().includes(cerca));
   if (operatore) filtrati = filtrati.filter(m => m.operatore === operatore);
   if (tipo)      filtrati = filtrati.filter(m => m.tipo === tipo);
 
   const countEl = document.getElementById('storico-count');
-  countEl.textContent = `${filtrati.length} moviment${filtrati.length === 1 ? 'o' : 'i'}${movimentiCache.length >= 300 ? ' (ultimi 300)' : ''}`;
+  countEl.textContent = `${filtrati.length} moviment${filtrati.length === 1 ? 'o' : 'i'}${dati.length >= 300 ? ' (ultimi 300)' : ''}`;
 
   const container = document.getElementById('storico-movimenti-list');
 
@@ -1203,10 +1222,10 @@ function renderMovimentiPF() {
     </div>`;
 
   const righe = filtrati.map(m => {
-    const ts   = m.timestamp?.toDate?.() ?? null;
-    const data = ts ? ts.toLocaleDateString('it-IT') : '—';
-    const ora  = ts ? ts.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
-    const cfg  = tipoConfig[m.tipo] ?? { label: m.tipo ?? '—', cls: '' };
+    const ts    = m.timestamp?.toDate?.() ?? null;
+    const data  = ts ? ts.toLocaleDateString('it-IT') : '—';
+    const ora   = ts ? ts.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+    const cfg   = tipoConfig[m.tipo] ?? { label: m.tipo ?? '—', cls: '' };
     const isPos = m.tipo !== 'prelievo';
     const segno = isPos ? '+' : '−';
     const nota  = m.nota ? `<span class="storico-mov-nota">${m.nota}</span>` : '';
@@ -1217,7 +1236,7 @@ function renderMovimentiPF() {
         <div class="storico-mov-prodotto" title="${m.nomeProdotto ?? ''}">${m.nomeProdotto ?? '—'}${nota}</div>
         <div><span class="storico-mov-tipo ${cfg.cls}">${cfg.label}</span></div>
         <div class="storico-mov-qty ${isPos ? 'pos' : 'neg'}">${segno}${m.quantita ?? 0}</div>
-        <div class="storico-mov-dopo">${m.quantitaDopo ?? 0} <small>rocche</small></div>
+        <div class="storico-mov-dopo">${m.quantitaDopo ?? 0} <small>${m._unita}</small></div>
         <div class="storico-mov-operatore">${m.operatore ?? '—'}</div>
       </div>`;
   }).join('');

@@ -2774,3 +2774,33 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     gap: .3rem;
   }
 }
+
+/* ── Tab bar interna — storico movimenti ────────────────────── */
+.storico-tab-bar {
+  display: flex;
+  gap: .25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: .875rem;
+}
+.storico-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 500;
+  padding: .4rem .75rem .5rem;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.storico-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.storico-filters {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: .75rem;
+  flex-wrap: wrap;
+}
