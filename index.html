@@ -60,7 +60,12 @@
       <section id="view-magazzino" class="view">
         <div class="view-header">
           <h2>Magazzino</h2>
-          <button class="guida-btn" data-guida="magazzino" title="Guida"><i class="fas fa-circle-info"></i></button>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <button id="storico-movimenti-btn" class="btn-ghost btn-sm">
+              <i class="fas fa-clock-rotate-left"></i> Storico
+            </button>
+            <button class="guida-btn" data-guida="magazzino" title="Guida"><i class="fas fa-circle-info"></i></button>
+          </div>
         </div>
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="materia-prima">Materia Prima</button>
@@ -92,9 +97,6 @@
             </button>
             <button id="toggle-archivio-pf" class="btn-ghost btn-sm">
               <i class="fas fa-archive"></i> Archivio Eliminati
-            </button>
-            <button id="storico-movimenti-btn" class="btn-ghost btn-sm">
-              <i class="fas fa-clock-rotate-left"></i> Storico movimenti
             </button>
           </div>
           <div id="list-prodotto-finito" class="pf-accordion"></div>
@@ -636,18 +638,26 @@
         <button class="storico-tab" data-storico-tab="mp">Materia Prima</button>
       </div>
       <div class="storico-filters">
-        <input type="text" id="storico-search" class="input-search" placeholder="Cerca prodotto…" style="flex:1;min-width:150px">
-        <select id="storico-operatore" class="input-select" style="min-width:140px">
+        <select id="storico-prodotto" class="input-select" style="flex:1;min-width:160px">
+          <option value="">Tutti i prodotti</option>
+        </select>
+        <select id="storico-operatore" class="input-select" style="min-width:130px">
           <option value="">Tutti gli operatori</option>
         </select>
-        <select id="storico-tipo" class="input-select" style="min-width:120px">
+        <select id="storico-tipo" class="input-select" style="min-width:110px">
           <option value="">Tutti i tipi</option>
           <option value="carico">Carico</option>
           <option value="prelievo">Prelievo</option>
           <option value="rettifica">Rettifica</option>
         </select>
+        <input type="date" id="storico-data" class="input-select" style="min-width:140px" title="Filtra per data">
       </div>
-      <p id="storico-count" style="font-size:.75rem;color:var(--text-muted);margin-bottom:.4rem"></p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
+        <p id="storico-count" style="font-size:.75rem;color:var(--text-muted);margin:0"></p>
+        <button id="storico-print-btn" class="btn-ghost btn-sm" style="font-size:.75rem">
+          <i class="fas fa-print"></i> Stampa
+        </button>
+      </div>
       <div id="storico-movimenti-list"></div>
     </div>
   </div>

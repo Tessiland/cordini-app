@@ -34,9 +34,11 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
   document.getElementById('storico-movimenti-btn').addEventListener('click', apriStoricoMovimenti);
-  document.getElementById('storico-search').addEventListener('input', renderStorico);
+  document.getElementById('storico-prodotto').addEventListener('change', renderStorico);
   document.getElementById('storico-operatore').addEventListener('change', renderStorico);
   document.getElementById('storico-tipo').addEventListener('change', renderStorico);
+  document.getElementById('storico-data').addEventListener('change', renderStorico);
+  document.getElementById('storico-print-btn').addEventListener('click', stampaStorico);
   document.querySelectorAll('.storico-tab').forEach(btn =>
     btn.addEventListener('click', () => caricaStoricoTab(btn.dataset.storicoTab))
   );
@@ -1148,8 +1150,10 @@ let storicoTabAttiva = 'pf';
 
 async function apriStoricoMovimenti() {
   openModal('modal-storico-movimenti');
-  document.getElementById('storico-search').value = '';
-  document.getElementById('storico-tipo').value   = '';
+  document.getElementById('storico-prodotto').value  = '';
+  document.getElementById('storico-operatore').value = '';
+  document.getElementById('storico-tipo').value      = '';
+  document.getElementById('storico-data').value      = '';
   await caricaStoricoTab(storicoTabAttiva);
 }
 
@@ -1170,7 +1174,7 @@ async function caricaStoricoTab(tab) {
     const q    = query(collection(db, collez), orderBy("timestamp", "desc"), limit(300));
     const snap = await getDocs(q);
     storicoCache[tab] = snap.docs.map(d => ({ id: d.id, _unita: unita, ...d.data() }));
-    popolaFiltroOperatori();
+    popolaFiltri();
     renderStorico();
   } catch (err) {
     console.error("Errore caricamento storico:", err);
@@ -1178,24 +1182,51 @@ async function caricaStoricoTab(tab) {
   }
 }
 
-function popolaFiltroOperatori() {
+function popolaFiltri() {
+  const isPF = storicoTabAttiva === 'pf';
+
+  // Dropdown prodotti dall'anagrafica
+  const nomi = isPF
+    ? [...new Set(tuttiProdottiFiniti.filter(p => !p.eliminato).map(p => p.nome).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'))
+    : [...new Set(getProdotti().map(p => p.nome).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
+  const selProd = document.getElementById('storico-prodotto');
+  const prodVal = selProd.value;
+  selProd.innerHTML = '<option value="">Tutti i prodotti</option>' +
+    nomi.map(n => `<option value="${n}" ${n === prodVal ? 'selected' : ''}>${n}</option>`).join('');
+
+  // Dropdown operatori dai dati caricati
   const dati      = storicoCache[storicoTabAttiva];
   const operatori = [...new Set(dati.map(m => m.operatore).filter(Boolean))].sort();
-  const sel       = document.getElementById('storico-operatore');
-  sel.innerHTML   = '<option value="">Tutti gli operatori</option>' +
-    operatori.map(o => `<option value="${o}">${o}</option>`).join('');
+  const selOp     = document.getElementById('storico-operatore');
+  const opVal     = selOp.value;
+  selOp.innerHTML = '<option value="">Tutti gli operatori</option>' +
+    operatori.map(o => `<option value="${o}" ${o === opVal ? 'selected' : ''}>${o}</option>`).join('');
 }
 
 function renderStorico() {
   const dati      = storicoCache[storicoTabAttiva];
-  const cerca     = document.getElementById('storico-search').value.toLowerCase().trim();
+  const isPF      = storicoTabAttiva === 'pf';
+  const prodotto  = document.getElementById('storico-prodotto').value;
   const operatore = document.getElementById('storico-operatore').value;
   const tipo      = document.getElementById('storico-tipo').value;
+  const dataFiltro = document.getElementById('storico-data').value; // "YYYY-MM-DD"
 
   let filtrati = dati;
-  if (cerca)     filtrati = filtrati.filter(m => m.nomeProdotto?.toLowerCase().includes(cerca));
+  if (prodotto) {
+    filtrati = isPF
+      ? filtrati.filter(m => m.nomeProdotto?.split(' — ')[1] === prodotto)
+      : filtrati.filter(m => m.nomeProdotto === prodotto);
+  }
   if (operatore) filtrati = filtrati.filter(m => m.operatore === operatore);
   if (tipo)      filtrati = filtrati.filter(m => m.tipo === tipo);
+  if (dataFiltro) {
+    filtrati = filtrati.filter(m => {
+      const ts = m.timestamp?.toDate?.();
+      if (!ts) return false;
+      const gg = ts.toLocaleDateString('sv-SE'); // "YYYY-MM-DD"
+      return gg === dataFiltro;
+    });
+  }
 
   const countEl = document.getElementById('storico-count');
   countEl.textContent = `${filtrati.length} moviment${filtrati.length === 1 ? 'o' : 'i'}${dati.length >= 300 ? ' (ultimi 300)' : ''}`;
@@ -1242,6 +1273,63 @@ function renderStorico() {
   }).join('');
 
   container.innerHTML = header + righe;
+}
+
+function stampaStorico() {
+  const tab      = storicoTabAttiva === 'pf' ? 'Prodotto Finito' : 'Materia Prima';
+  const prodotto = document.getElementById('storico-prodotto').value;
+  const data     = document.getElementById('storico-data').value;
+  const count    = document.getElementById('storico-count').textContent;
+  const righe    = document.getElementById('storico-movimenti-list').innerHTML;
+
+  const dataFmt = data
+    ? new Date(data + 'T00:00:00').toLocaleDateString('it-IT')
+    : null;
+
+  const titolo = [
+    `Storico Movimenti — ${tab}`,
+    prodotto && `Prodotto: ${prodotto}`,
+    dataFmt  && `Data: ${dataFmt}`
+  ].filter(Boolean).join(' · ');
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="it"><head>
+    <meta charset="UTF-8">
+    <title>${titolo}</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: system-ui, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+      h2 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+      .sub { font-size: 10px; color: #666; margin-bottom: 12px; }
+      .storico-mov-header, .storico-mov-row {
+        display: grid;
+        grid-template-columns: 5rem 1fr 5.5rem 3rem 4.5rem 7rem;
+        gap: 6px; padding: 5px 4px;
+        border-bottom: 1px solid #ddd;
+      }
+      .storico-mov-header { font-weight: 700; font-size: 10px; text-transform: uppercase; color: #666; background: #f5f5f5; }
+      .storico-mov-data { color: #555; font-size: 10px; line-height: 1.4; }
+      .storico-mov-prodotto { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .storico-mov-nota { display: block; font-size: 9px; color: #888; }
+      .storico-mov-tipo { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; text-align: center; }
+      .tipo-carico    { background: #d1fae5; color: #065f46; }
+      .tipo-prelievo  { background: #fee2e2; color: #991b1b; }
+      .tipo-rettifica { background: #fef3c7; color: #92400e; }
+      .storico-mov-qty { font-weight: 700; text-align: right; }
+      .storico-mov-qty.pos { color: #065f46; }
+      .storico-mov-qty.neg { color: #991b1b; }
+      .storico-mov-dopo { text-align: right; color: #555; }
+      .storico-mov-dopo small { color: #999; }
+      .storico-mov-operatore { text-align: right; color: #2563eb; }
+      @media print { @page { margin: 15mm; } }
+    </style>
+  </head><body>
+    <h2>${titolo}</h2>
+    <p class="sub">${count} · Stampa del ${new Date().toLocaleString('it-IT')}</p>
+    ${righe}
+    <script>window.onload = () => { window.print(); }<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 export { apriAggiungi as apriModalAggiuntaPF };
