@@ -2804,3 +2804,39 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   margin-bottom: .75rem;
   flex-wrap: wrap;
 }
+
+/* ── Stampa esistenze ───────────────────────────────────────── */
+.esistenze-table-wrap {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.esistenze-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+}
+.esistenze-table thead th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: .4rem .6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  position: sticky;
+  top: 0;
+}
+.esistenze-table td {
+  padding: .4rem .6rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.esistenze-table tfoot td {
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--text-secondary);
+}
+.esistenze-table tr.zero td { color: var(--text-muted); }
+.esistenze-table .num { text-align: right; font-variant-numeric: tabular-nums; }

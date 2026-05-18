@@ -34,6 +34,9 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
   document.getElementById('storico-movimenti-btn').addEventListener('click', apriStoricoMovimenti);
+  document.getElementById('stampa-esistenze-btn').addEventListener('click', apriStampaEsistenze);
+  document.getElementById('esistenze-tipologia').addEventListener('change', renderEsistenze);
+  document.getElementById('esistenze-print-btn').addEventListener('click', stampaEsistenze);
   document.getElementById('storico-prodotto').addEventListener('change', renderStorico);
   document.getElementById('storico-operatore').addEventListener('change', renderStorico);
   document.getElementById('storico-tipo').addEventListener('change', renderStorico);
@@ -1273,6 +1276,118 @@ function renderStorico() {
   }).join('');
 
   container.innerHTML = header + righe;
+}
+
+// ─── Stampa esistenze per tipologia ─────────────────────────────
+function apriStampaEsistenze() {
+  const tipologie = [...new Set(
+    tuttiProdottiFiniti
+      .filter(p => !p.eliminato)
+      .map(p => p.nome)
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, 'it'));
+
+  const sel = document.getElementById('esistenze-tipologia');
+  sel.innerHTML = '<option value="">— Seleziona cordino —</option>' +
+    tipologie.map(t => `<option value="${t}">${t}</option>`).join('');
+
+  document.getElementById('esistenze-preview').innerHTML = '';
+  document.getElementById('esistenze-print-btn').disabled = true;
+  openModal('modal-stampa-esistenze');
+}
+
+function renderEsistenze() {
+  const tipologia = document.getElementById('esistenze-tipologia').value;
+  const preview   = document.getElementById('esistenze-preview');
+  const printBtn  = document.getElementById('esistenze-print-btn');
+
+  if (!tipologia) {
+    preview.innerHTML = '';
+    printBtn.disabled = true;
+    return;
+  }
+
+  const prodotti = tuttiProdottiFiniti
+    .filter(p => !p.eliminato && p.nome === tipologia)
+    .sort((a, b) => {
+      const ca = (a.colore ?? '').localeCompare(b.colore ?? '', 'it');
+      if (ca !== 0) return ca;
+      return (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0);
+    });
+
+  if (prodotti.length === 0) {
+    preview.innerHTML = '<p class="empty-state">Nessun prodotto trovato.</p>';
+    printBtn.disabled = true;
+    return;
+  }
+
+  const totRocche = prodotti.reduce((s, p) => s + (p.quantitaRocche ?? 0), 0);
+
+  preview.innerHTML = `
+    <div class="esistenze-table-wrap">
+      <table class="esistenze-table">
+        <thead>
+          <tr>
+            <th>Nome prodotto</th>
+            <th>Colore</th>
+            <th>Ubicazione</th>
+            <th>Partita</th>
+            <th class="num">Rocche</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${prodotti.map(p => {
+            const stockCls = (p.quantitaRocche ?? 0) === 0 ? 'zero' : '';
+            return `<tr class="${stockCls}">
+              <td>${p.nome ?? '—'}</td>
+              <td>${p.colore ?? '—'}</td>
+              <td>${p.ubicazione || '—'}</td>
+              <td>${p.partita || '—'}</td>
+              <td class="num">${p.quantitaRocche ?? 0}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" style="font-weight:600;text-align:right;padding-right:.75rem">Totale</td>
+            <td class="num" style="font-weight:700">${totRocche}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  printBtn.disabled = false;
+}
+
+function stampaEsistenze() {
+  const tipologia = document.getElementById('esistenze-tipologia').value;
+  const tabella   = document.getElementById('esistenze-preview').innerHTML;
+  const oggi      = new Date().toLocaleDateString('it-IT');
+
+  const win = window.open('', '_blank', 'width=800,height=600');
+  win.document.write(`<!DOCTYPE html><html lang="it"><head>
+    <meta charset="UTF-8">
+    <title>Esistenze — ${tipologia}</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: system-ui, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+      h2 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+      .sub { font-size: 10px; color: #666; margin-bottom: 14px; }
+      table { width: 100%; border-collapse: collapse; }
+      thead th { background: #f0f0f0; font-weight: 700; font-size: 10px; text-transform: uppercase;
+                 letter-spacing: .04em; padding: 5px 8px; border-bottom: 2px solid #ccc; text-align: left; }
+      td { padding: 5px 8px; border-bottom: 1px solid #e5e5e5; }
+      tfoot td { border-top: 2px solid #ccc; border-bottom: none; background: #fafafa; }
+      .num { text-align: right; font-variant-numeric: tabular-nums; }
+      tr.zero td { color: #aaa; }
+      @media print { @page { margin: 15mm; } }
+    </style>
+  </head><body>
+    <h2>Esistenze — ${tipologia}</h2>
+    <p class="sub">Situazione al ${oggi}</p>
+    ${tabella}
+    <script>window.onload = () => { window.print(); }<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 function stampaStorico() {

@@ -98,6 +98,9 @@
             <button id="toggle-archivio-pf" class="btn-ghost btn-sm">
               <i class="fas fa-archive"></i> Archivio Eliminati
             </button>
+            <button id="stampa-esistenze-btn" class="btn-ghost btn-sm">
+              <i class="fas fa-print"></i> Stampa esistenze
+            </button>
           </div>
           <div id="list-prodotto-finito" class="pf-accordion"></div>
           <div id="list-archivio-pf" class="hidden"></div>
@@ -659,6 +662,27 @@
         </button>
       </div>
       <div id="storico-movimenti-list"></div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL STAMPA ESISTENZE ===== -->
+  <div id="modal-stampa-esistenze" class="modal-overlay hidden">
+    <div class="modal-panel" style="max-width:620px;width:100%">
+      <div class="modal-header">
+        <h3 class="modal-title">Stampa Esistenze</h3>
+        <button class="btn-icon modal-close" data-modal="modal-stampa-esistenze">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem">
+        <select id="esistenze-tipologia" class="input-select" style="flex:1">
+          <option value="">— Seleziona cordino —</option>
+        </select>
+        <button id="esistenze-print-btn" class="btn-primary btn-sm" disabled>
+          <i class="fas fa-print"></i> Stampa
+        </button>
+      </div>
+      <div id="esistenze-preview"></div>
     </div>
   </div>
 
