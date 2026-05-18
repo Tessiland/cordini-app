@@ -2691,3 +2691,86 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   padding: 2px 6px;
   font-size: .85rem;
 }
+
+/* ── Storico movimenti PF ───────────────────────────────────── */
+.storico-mov-header,
+.storico-mov-row {
+  display: grid;
+  grid-template-columns: 5rem 1fr 5.5rem 3rem 4.5rem 7rem;
+  align-items: center;
+  gap: .5rem;
+  padding: .45rem .6rem;
+}
+.storico-mov-header {
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 1px solid var(--border);
+}
+.storico-mov-row {
+  border-bottom: 1px solid var(--border);
+  font-size: .8rem;
+}
+.storico-mov-row:last-child { border-bottom: none; }
+.storico-mov-data {
+  color: var(--text-muted);
+  font-size: .72rem;
+  line-height: 1.4;
+}
+.storico-mov-prodotto {
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.35;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.storico-mov-nota {
+  display: block;
+  font-size: .68rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.storico-mov-tipo {
+  font-size: .68rem;
+  font-weight: 600;
+  padding: .15rem .4rem;
+  border-radius: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+.tipo-carico    { background: var(--success-dim); color: var(--success); }
+.tipo-prelievo  { background: var(--danger-dim);  color: var(--danger); }
+.tipo-rettifica { background: var(--warning-dim); color: var(--warning); }
+.storico-mov-qty {
+  font-weight: 700;
+  text-align: right;
+  font-size: .82rem;
+}
+.storico-mov-qty.pos { color: var(--success); }
+.storico-mov-qty.neg { color: var(--danger); }
+.storico-mov-dopo {
+  color: var(--text-secondary);
+  text-align: right;
+  font-size: .78rem;
+}
+.storico-mov-dopo small { color: var(--text-muted); }
+.storico-mov-operatore {
+  color: var(--accent);
+  font-size: .75rem;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .storico-mov-header,
+  .storico-mov-row {
+    grid-template-columns: 4rem 1fr 4rem 2.5rem 4rem 5.5rem;
+    font-size: .72rem;
+    gap: .3rem;
+  }
+}

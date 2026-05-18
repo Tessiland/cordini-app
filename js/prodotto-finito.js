@@ -1,6 +1,6 @@
 import {
-  collection, query, orderBy, onSnapshot, doc,
-  addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp, writeBatch
+  collection, query, orderBy, limit, onSnapshot, doc,
+  addDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp, writeBatch, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { openModal, closeModal } from './nav.js';
 import { aggiornaDatalists } from './tipologie.js';
@@ -33,6 +33,10 @@ export function initProdottoFinito(firestoreDb) {
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
   document.getElementById('toggle-archivio-pf').addEventListener('click', toggleArchivio);
   document.getElementById('form-nuova-partita').addEventListener('submit', salvaNuovaPartita);
+  document.getElementById('storico-movimenti-btn').addEventListener('click', apriStoricoMovimenti);
+  document.getElementById('storico-search').addEventListener('input', renderMovimentiPF);
+  document.getElementById('storico-operatore').addEventListener('change', renderMovimentiPF);
+  document.getElementById('storico-tipo').addEventListener('change', renderMovimentiPF);
 
   document.getElementById('add-colore-btn').addEventListener('click', () => {
     coloriComponentiForm.push({ idFornitore: '', idProdotto: '', nomeColore: '', percentuale: 0 });
@@ -1133,6 +1137,92 @@ export async function rimuoviSuffissoMulticolore() {
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Rimuovi "Multicolore"'; }
   }
+}
+
+// ─── Storico movimenti PF ────────────────────────────────────────
+let movimentiCache = [];
+
+async function apriStoricoMovimenti() {
+  openModal('modal-storico-movimenti');
+  const el = document.getElementById('storico-movimenti-list');
+  el.innerHTML = '<p class="empty-state">Caricamento…</p>';
+  document.getElementById('storico-count').textContent = '';
+
+  try {
+    const q    = query(collection(db, "movimenti_pf"), orderBy("timestamp", "desc"), limit(300));
+    const snap = await getDocs(q);
+    movimentiCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    popolaFiltroOperatori();
+    renderMovimentiPF();
+  } catch (err) {
+    console.error("Errore caricamento storico:", err);
+    el.innerHTML = '<p class="empty-state">Errore nel caricamento.</p>';
+  }
+}
+
+function popolaFiltroOperatori() {
+  const operatori = [...new Set(movimentiCache.map(m => m.operatore).filter(Boolean))].sort();
+  const sel       = document.getElementById('storico-operatore');
+  const corrente  = sel.value;
+  sel.innerHTML   = '<option value="">Tutti gli operatori</option>' +
+    operatori.map(o => `<option value="${o}" ${o === corrente ? 'selected' : ''}>${o}</option>`).join('');
+}
+
+function renderMovimentiPF() {
+  const cerca     = document.getElementById('storico-search').value.toLowerCase().trim();
+  const operatore = document.getElementById('storico-operatore').value;
+  const tipo      = document.getElementById('storico-tipo').value;
+
+  let filtrati = movimentiCache;
+  if (cerca)     filtrati = filtrati.filter(m => m.nomeProdotto?.toLowerCase().includes(cerca));
+  if (operatore) filtrati = filtrati.filter(m => m.operatore === operatore);
+  if (tipo)      filtrati = filtrati.filter(m => m.tipo === tipo);
+
+  const countEl = document.getElementById('storico-count');
+  countEl.textContent = `${filtrati.length} moviment${filtrati.length === 1 ? 'o' : 'i'}${movimentiCache.length >= 300 ? ' (ultimi 300)' : ''}`;
+
+  const container = document.getElementById('storico-movimenti-list');
+
+  if (filtrati.length === 0) {
+    container.innerHTML = '<p class="empty-state">Nessun movimento trovato.</p>';
+    return;
+  }
+
+  const tipoConfig = {
+    carico:    { label: 'Carico',    cls: 'tipo-carico' },
+    prelievo:  { label: 'Prelievo',  cls: 'tipo-prelievo' },
+    rettifica: { label: 'Rettifica', cls: 'tipo-rettifica' },
+  };
+
+  const header = `
+    <div class="storico-mov-header">
+      <span>Data</span><span>Prodotto</span><span>Tipo</span>
+      <span style="text-align:right">Qtà</span>
+      <span style="text-align:right">Dopo</span>
+      <span style="text-align:right">Operatore</span>
+    </div>`;
+
+  const righe = filtrati.map(m => {
+    const ts   = m.timestamp?.toDate?.() ?? null;
+    const data = ts ? ts.toLocaleDateString('it-IT') : '—';
+    const ora  = ts ? ts.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+    const cfg  = tipoConfig[m.tipo] ?? { label: m.tipo ?? '—', cls: '' };
+    const isPos = m.tipo !== 'prelievo';
+    const segno = isPos ? '+' : '−';
+    const nota  = m.nota ? `<span class="storico-mov-nota">${m.nota}</span>` : '';
+
+    return `
+      <div class="storico-mov-row">
+        <div class="storico-mov-data">${data}<br>${ora}</div>
+        <div class="storico-mov-prodotto" title="${m.nomeProdotto ?? ''}">${m.nomeProdotto ?? '—'}${nota}</div>
+        <div><span class="storico-mov-tipo ${cfg.cls}">${cfg.label}</span></div>
+        <div class="storico-mov-qty ${isPos ? 'pos' : 'neg'}">${segno}${m.quantita ?? 0}</div>
+        <div class="storico-mov-dopo">${m.quantitaDopo ?? 0} <small>rocche</small></div>
+        <div class="storico-mov-operatore">${m.operatore ?? '—'}</div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = header + righe;
 }
 
 export { apriAggiungi as apriModalAggiuntaPF };

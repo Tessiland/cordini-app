@@ -93,6 +93,9 @@
             <button id="toggle-archivio-pf" class="btn-ghost btn-sm">
               <i class="fas fa-archive"></i> Archivio Eliminati
             </button>
+            <button id="storico-movimenti-btn" class="btn-ghost btn-sm">
+              <i class="fas fa-clock-rotate-left"></i> Storico movimenti
+            </button>
           </div>
           <div id="list-prodotto-finito" class="pf-accordion"></div>
           <div id="list-archivio-pf" class="hidden"></div>
@@ -616,6 +619,32 @@
           <button type="submit" class="btn-primary">Salva Partita</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL STORICO MOVIMENTI PF ===== -->
+  <div id="modal-storico-movimenti" class="modal-overlay hidden">
+    <div class="modal-panel" style="max-width:720px;width:100%">
+      <div class="modal-header">
+        <h3 class="modal-title">Storico Movimenti — Prodotto Finito</h3>
+        <button class="btn-icon modal-close" data-modal="modal-storico-movimenti">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">
+        <input type="text" id="storico-search" class="input-search" placeholder="Cerca prodotto…" style="flex:1;min-width:150px">
+        <select id="storico-operatore" class="input-select" style="min-width:140px">
+          <option value="">Tutti gli operatori</option>
+        </select>
+        <select id="storico-tipo" class="input-select" style="min-width:120px">
+          <option value="">Tutti i tipi</option>
+          <option value="carico">Carico</option>
+          <option value="prelievo">Prelievo</option>
+          <option value="rettifica">Rettifica</option>
+        </select>
+      </div>
+      <p id="storico-count" style="font-size:.75rem;color:var(--text-muted);margin-bottom:.4rem"></p>
+      <div id="storico-movimenti-list"></div>
     </div>
   </div>
 
