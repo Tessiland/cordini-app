@@ -408,6 +408,11 @@ async function undoUltimaScan() {
 // ─── Uscita ───────────────────────────────────────────────────────
 function mostraModaleUscita() {
   fermaScan();
+  const haScansioni = (sessioneData?.scansioni ?? []).some(s => !s.annullata);
+  if (!haScansioni) {
+    chiudiOverlay();
+    return;
+  }
   document.getElementById('modal-picking-exit').classList.remove('hidden');
 }
 

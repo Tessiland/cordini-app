@@ -2878,7 +2878,21 @@ body.picking-active { overflow: hidden; }
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.picking-exit-btn { color: var(--text-secondary); }
+.picking-header-exit-btn {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .35rem .65rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.picking-header-exit-btn:active { opacity: .7; }
 .picking-ordine-label {
   flex: 1;
   font-size: .95rem;
