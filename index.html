@@ -726,6 +726,14 @@
 
     <!-- Azioni principali -->
     <div id="picking-main-actions" class="picking-main-actions hidden">
+      <div class="picking-qty-preimpostata">
+        <label class="picking-qty-pre-label">Pezzi da prelevare</label>
+        <div class="picking-qty-pre-row">
+          <input type="number" id="picking-qty-input" class="picking-qty-input" min="1" value="30">
+          <span class="picking-confirm-pz">pz</span>
+        </div>
+        <p class="picking-confirm-hint">Modifica se il cartone non è da 30</p>
+      </div>
       <button id="picking-scan-btn" class="picking-btn-scan">
         <i class="fas fa-barcode"></i> Scansiona
       </button>
@@ -742,17 +750,10 @@
       </button>
     </div>
 
-    <!-- Conferma prelievo -->
+    <!-- Conferma prelievo (dopo scan) -->
     <div id="picking-confirm-wrap" class="picking-confirm-wrap hidden">
       <div class="picking-confirm-prodotto" id="picking-confirm-msg"></div>
-      <div class="picking-confirm-qty-row">
-        <label class="picking-confirm-qty-label">Quantità da prelevare</label>
-        <div class="picking-confirm-qty-input-wrap">
-          <input type="number" id="picking-qty-input" class="picking-qty-input" min="1" value="30">
-          <span class="picking-confirm-pz">pz</span>
-        </div>
-        <p class="picking-confirm-hint">Modifica se il cartone non è da 30</p>
-      </div>
+      <div class="picking-confirm-riepilogo" id="picking-confirm-riepilogo"></div>
       <div class="picking-confirm-actions">
         <button id="picking-confirm-ok" class="picking-btn-confirm">
           <i class="fas fa-check"></i> Conferma prelievo

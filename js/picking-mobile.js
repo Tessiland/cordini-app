@@ -213,11 +213,11 @@ function onScanSuccess(barcode) {
     return;
   }
 
-  const rimanente  = item.qtyRichiesta - item.qtyPrelevata;
-  const qtyDefault = Math.min(30, rimanente);
+  const qty = parseInt(document.getElementById('picking-qty-input').value, 10) || 30;
 
   document.getElementById('picking-confirm-msg').textContent = `${item.nome} — ${item.colore}`;
-  document.getElementById('picking-qty-input').value = qtyDefault;
+  document.getElementById('picking-confirm-riepilogo').textContent =
+    `Stai prelevando ${qty} pz${qty % 30 !== 0 ? ' ⚠️ (quantità anomala)' : ''}`;
 
   nascondiTutti();
   document.getElementById('picking-confirm-wrap').classList.remove('hidden');

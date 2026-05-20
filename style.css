@@ -2975,6 +2975,36 @@ body.picking-active { overflow: hidden; }
   gap: .625rem;
   padding: 1rem;
 }
+.picking-qty-preimpostata {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .875rem 1rem;
+  text-align: center;
+}
+.picking-qty-pre-label {
+  display: block;
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-secondary);
+  margin-bottom: .5rem;
+}
+.picking-qty-pre-row {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .25rem;
+}
+.picking-confirm-riepilogo {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
 .picking-btn-scan {
   background: var(--accent);
   color: #fff;
