@@ -4,6 +4,7 @@ import {
   writeBatch, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getProdottiFiniti } from './prodotto-finito.js';
+import { avviaPickingMobile } from './picking-mobile.js';
 
 let db;
 let operatoreCorrente = 'Operatori';
@@ -120,6 +121,11 @@ function creaCardOrdine(ordine) {
         <button class="btn-ghost btn-sm btn-ghost-danger" data-action="elimina" data-id="${ordine.id}">
           <i class="fas fa-trash"></i> Elimina
         </button>
+        ${ordine.stato !== 'chiuso'
+          ? `<button class="btn-accent btn-sm" data-action="picking-mobile" data-id="${ordine.id}">
+               <i class="fas fa-barcode"></i> Picking Mobile
+             </button>`
+          : ''}
       </div>
       <div class="ordine-items">
         <div class="ordine-items-header">
@@ -227,6 +233,9 @@ function gestisciClick(e) {
       .finally(() => { el.disabled = false; });
   } else if (action === 'edit-qty') {
     apriEditQty(el, el.dataset.ordineId, Number(el.dataset.index));
+  } else if (action === 'picking-mobile') {
+    const o = ordini.find(o => o.id === el.dataset.id);
+    if (o) avviaPickingMobile(o).catch(err => alert(`Errore avvio picking: ${err.message}`));
   }
 }
 

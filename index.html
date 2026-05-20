@@ -689,8 +689,123 @@
   <!-- Area di stampa — nascosta, visibile solo con window.print() -->
   <div id="print-area" style="display:none"></div>
 
+  <!-- ===================== PICKING MOBILE OVERLAY ===================== -->
+  <div id="picking-overlay" class="picking-overlay hidden">
+
+    <div class="picking-header">
+      <button id="picking-exit-btn" class="btn-icon picking-exit-btn" title="Esci">
+        <i class="fas fa-xmark"></i>
+      </button>
+      <div class="picking-ordine-label">Ordine #<span id="picking-ordine-num"></span></div>
+      <div class="picking-progress-badge">
+        <span id="picking-items-done">0</span>/<span id="picking-items-total">0</span>
+      </div>
+    </div>
+
+    <div class="picking-progress-bar-wrap">
+      <div id="picking-progress-bar" class="picking-progress-bar"></div>
+    </div>
+
+    <!-- Card articolo corrente -->
+    <div id="picking-item-card" class="picking-item-card hidden">
+      <div class="picking-item-nome" id="picking-item-nome"></div>
+      <div class="picking-item-colore" id="picking-item-colore"></div>
+      <div class="picking-item-row-info">
+        <span class="picking-item-sku-label">SKU</span>
+        <span class="picking-item-sku" id="picking-item-sku"></span>
+      </div>
+      <div class="picking-item-row-info picking-item-row-ubicazione">
+        <i class="fas fa-location-dot"></i>
+        <span id="picking-item-ubicazione"></span>
+      </div>
+      <div class="picking-item-scan-info">
+        <span id="picking-scan-count">0</span>/<span id="picking-scan-needed">0</span> scansioni &nbsp;·&nbsp;
+        <span id="picking-qty-done">0</span>/<span id="picking-qty-totale">0</span> pz
+      </div>
+    </div>
+
+    <!-- Azioni principali -->
+    <div id="picking-main-actions" class="picking-main-actions hidden">
+      <button id="picking-scan-btn" class="picking-btn-scan">
+        <i class="fas fa-barcode"></i> Scansiona
+      </button>
+      <button id="picking-undo-btn" class="picking-btn-undo" disabled>
+        <i class="fas fa-rotate-left"></i> Annulla ultima
+      </button>
+    </div>
+
+    <!-- Scanner camera -->
+    <div id="picking-scanner-wrap" class="picking-scanner-wrap hidden">
+      <div id="picking-reader"></div>
+      <button id="picking-stop-scan-btn" class="btn-ghost btn-sm" style="margin-top:.75rem">
+        <i class="fas fa-xmark"></i> Annulla scansione
+      </button>
+    </div>
+
+    <!-- Conferma prelievo -->
+    <div id="picking-confirm-wrap" class="picking-confirm-wrap hidden">
+      <div class="picking-confirm-prodotto" id="picking-confirm-msg"></div>
+      <div class="picking-confirm-qty-row">
+        <label class="picking-confirm-qty-label">Quantità da prelevare</label>
+        <div class="picking-confirm-qty-input-wrap">
+          <input type="number" id="picking-qty-input" class="picking-qty-input" min="1" value="30">
+          <span class="picking-confirm-pz">pz</span>
+        </div>
+        <p class="picking-confirm-hint">Modifica se il cartone non è da 30</p>
+      </div>
+      <div class="picking-confirm-actions">
+        <button id="picking-confirm-ok" class="picking-btn-confirm">
+          <i class="fas fa-check"></i> Conferma prelievo
+        </button>
+        <button id="picking-confirm-cancel" class="picking-btn-cancel">Annulla</button>
+      </div>
+    </div>
+
+    <!-- Flash successo -->
+    <div id="picking-success-flash" class="picking-success-flash hidden">
+      <i class="fas fa-circle-check picking-success-icon"></i>
+      <span id="picking-success-msg"></span>
+    </div>
+
+    <!-- Stato completato -->
+    <div id="picking-done-wrap" class="picking-done-wrap hidden">
+      <i class="fas fa-circle-check picking-done-icon"></i>
+      <div class="picking-done-title">Ordine completato!</div>
+      <div class="picking-done-sub">Tutti gli articoli sono stati prelevati.</div>
+      <button id="picking-print-btn" class="btn-primary" style="margin-top:1.25rem">
+        <i class="fas fa-file-invoice"></i> Stampa Distinta di Consegna
+      </button>
+      <button id="picking-close-btn" class="btn-ghost" style="margin-top:.5rem">Chiudi</button>
+    </div>
+
+  </div>
+
+  <!-- ===================== MODAL USCITA PICKING ===================== -->
+  <div id="modal-picking-exit" class="modal-overlay hidden">
+    <div class="modal-panel" style="max-width:340px">
+      <div class="modal-header">
+        <h3 class="modal-title">Uscire dal picking?</h3>
+      </div>
+      <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:1.25rem;line-height:1.5">
+        Le scansioni già effettuate sono state salvate e il magazzino è già aggiornato.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:.625rem">
+        <button id="picking-exit-sospendi" class="btn-primary">
+          <i class="fas fa-pause"></i> Sospendi — riprendo più tardi
+        </button>
+        <button id="picking-exit-annulla" class="btn-ghost-danger">
+          <i class="fas fa-trash"></i> Annulla tutto e torna indietro
+        </button>
+        <button class="btn-secondary" onclick="document.getElementById('modal-picking-exit').classList.add('hidden')">
+          <i class="fas fa-arrow-left"></i> Continua picking
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

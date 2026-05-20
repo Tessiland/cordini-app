@@ -12,6 +12,7 @@ import { initEtichette }                     from './etichette.js';
 import { initBacheca }                       from './bacheca.js';
 import { initAlert }                          from './alert.js';
 import { initGuide }                          from './guide.js';
+import { initPickingMobile }                  from './picking-mobile.js';
 
 async function main() {
   let firebase;
@@ -44,6 +45,7 @@ async function main() {
     initProdottoFinito(db);
     try { initCatalogo(db, user.email); } catch (e) { console.error('initCatalogo:', e); }
     try { initOrdiniProduzione(db, user.email); } catch (e) { console.error('initOrdiniProduzione:', e); }
+    try { initPickingMobile(db, user.email); } catch (e) { console.error('initPickingMobile:', e); }
     try { initOrdiniFornitori(db); } catch (e) { console.error('initOrdiniFornitori:', e); }
     try {
       initEtichette(db);
