@@ -6,14 +6,15 @@ import { getProdottiFiniti } from './prodotto-finito.js';
 import { sbloccaAudio, suonoOk, suonoErrore } from './audio-mobile.js';
 
 let db, operatoreCorrente;
-let sessioneId   = null;
-let sessioneData = null;
-let ordineCorrente = null;
-let pickingList    = [];
-let itemIdx        = 0;
-let qrcodeScanner  = null;
-let scanActive     = false;
-let hidActive      = false;
+let sessioneId      = null;
+let sessioneData    = null;
+let ordineCorrente  = null;
+let pickingList     = [];
+let itemIdx         = 0;
+let modalitaScanner = null;  // 'camera' | 'hid' — scelto una volta all'apertura
+let qrcodeScanner   = null;
+let scanActive      = false;
+let hidActive       = false;
 let hidRefocusTimer = null;
 
 // ─── Init ─────────────────────────────────────────────────────────
@@ -22,8 +23,9 @@ export function initPickingMobile(firestoreDb, email) {
   operatoreCorrente = email;
 
   document.getElementById('picking-exit-btn').addEventListener('click', mostraModaleUscita);
+  document.getElementById('picking-mode-camera').addEventListener('click', () => scegliModo('camera'));
+  document.getElementById('picking-mode-hid').addEventListener('click',    () => scegliModo('hid'));
   document.getElementById('picking-scan-btn').addEventListener('click', avviaScan);
-  document.getElementById('picking-hid-btn').addEventListener('click', avviaHID);
   document.getElementById('picking-stop-scan-btn').addEventListener('click', () => { fermaScan(); aggiornaUI(); });
   document.getElementById('picking-stop-hid-btn').addEventListener('click', () => { fermaHID(); aggiornaUI(); });
   document.getElementById('picking-confirm-ok').addEventListener('click', confermaScan);
@@ -69,8 +71,19 @@ export async function avviaPickingMobile(ordine) {
   }
 
   buildPickingList();
+  modalitaScanner = null;
   document.getElementById('picking-overlay').classList.remove('hidden');
   document.body.classList.add('picking-active');
+  // Prima mostra la scelta modalità
+  nascondiTutti();
+  document.getElementById('picking-mode-select').classList.remove('hidden');
+}
+
+function scegliModo(modo) {
+  modalitaScanner = modo;
+  document.getElementById('picking-mode-select').classList.add('hidden');
+  // In modalità HID il bottone camera non serve — lo nascondiamo
+  document.getElementById('picking-scan-btn').classList.toggle('hidden', modo === 'hid');
   aggiornaUI();
 }
 
@@ -102,6 +115,17 @@ function buildPickingList() {
         completato:       item.spuntato || qtyPrelevata >= item.qtyRichiesta
       };
     });
+
+  // Ordina per ubicazione (completati in fondo), senza ubicazione alla fine del gruppo
+  pickingList.sort((a, b) => {
+    if (a.completato !== b.completato) return a.completato ? 1 : -1;
+    const ubA = a.ubicazione?.trim() || null;
+    const ubB = b.ubicazione?.trim() || null;
+    if (!ubA && !ubB) return a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' });
+    if (!ubA) return 1;
+    if (!ubB) return -1;
+    return ubA.localeCompare(ubB, 'it', { sensitivity: 'base' });
+  });
 
   itemIdx = pickingList.findIndex(i => !i.completato);
   if (itemIdx === -1) itemIdx = pickingList.length;
@@ -145,11 +169,14 @@ function aggiornaUI() {
 
   const haScansioni = (sessioneData.scansioni ?? []).some(s => !s.annullata);
   document.getElementById('picking-undo-btn').disabled = !haScansioni;
+
+  // In modalità HID riattiva immediatamente il campo senza toccare nulla
+  if (modalitaScanner === 'hid') avviaHID();
 }
 
 function nascondiTutti() {
-  ['picking-scanner-wrap', 'picking-hid-wrap', 'picking-confirm-wrap',
-   'picking-done-wrap', 'picking-success-flash',
+  ['picking-mode-select', 'picking-scanner-wrap', 'picking-hid-wrap',
+   'picking-confirm-wrap', 'picking-done-wrap', 'picking-success-flash',
    'picking-main-actions', 'picking-item-card'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
   );
@@ -533,10 +560,11 @@ function chiudiOverlay() {
   document.getElementById('picking-overlay').classList.add('hidden');
   document.getElementById('modal-picking-exit').classList.add('hidden');
   document.body.classList.remove('picking-active');
-  sessioneId     = null;
-  sessioneData   = null;
-  ordineCorrente = null;
-  pickingList    = [];
+  sessioneId      = null;
+  sessioneData    = null;
+  ordineCorrente  = null;
+  pickingList     = [];
+  modalitaScanner = null;
 }
 
 // ─── Stampa distinta ──────────────────────────────────────────────

@@ -3008,11 +3008,21 @@ body.picking-active { overflow: hidden; }
   margin-bottom: 1rem;
 }
 
-/* Due bottoni scan affiancati */
-.picking-scan-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .5rem;
+/* Schermata scelta modalità */
+.picking-mode-select {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  padding: 1.5rem 1rem;
+}
+.picking-mode-title {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .25rem;
 }
 
 .picking-btn-scan {

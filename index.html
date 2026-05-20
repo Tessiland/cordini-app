@@ -768,7 +768,18 @@
       </div>
     </div>
 
-    <!-- Azioni principali -->
+    <!-- Scelta modalità — mostrata una volta sola all'apertura -->
+    <div id="picking-mode-select" class="picking-mode-select hidden">
+      <p class="picking-mode-title">Come vuoi scansionare?</p>
+      <button id="picking-mode-camera" class="picking-btn-scan picking-btn-camera">
+        <i class="fas fa-camera"></i> Camera telefono
+      </button>
+      <button id="picking-mode-hid" class="picking-btn-scan picking-btn-hid">
+        <i class="fas fa-gun"></i> Scanner fisico (palmare)
+      </button>
+    </div>
+
+    <!-- Azioni principali (dopo scelta modo) -->
     <div id="picking-main-actions" class="picking-main-actions hidden">
       <div class="picking-qty-preimpostata">
         <label class="picking-qty-pre-label">Pezzi da prelevare</label>
@@ -778,14 +789,9 @@
         </div>
         <p class="picking-confirm-hint">Modifica se il cartone non è da 30</p>
       </div>
-      <div class="picking-scan-buttons">
-        <button id="picking-scan-btn" class="picking-btn-scan picking-btn-camera">
-          <i class="fas fa-camera"></i> Camera
-        </button>
-        <button id="picking-hid-btn" class="picking-btn-scan picking-btn-hid">
-          <i class="fas fa-gun"></i> Scanner fisico
-        </button>
-      </div>
+      <button id="picking-scan-btn" class="picking-btn-scan picking-btn-camera hidden">
+        <i class="fas fa-camera"></i> Scansiona con camera
+      </button>
       <button id="picking-undo-btn" class="picking-btn-undo" disabled>
         <i class="fas fa-rotate-left"></i> Annulla ultima
       </button>
