@@ -252,34 +252,41 @@ function fermaScan() {
 }
 
 // ─── Modalità HID (scanner fisico) ───────────────────────────────
+// Gestisce Enter (keydown) + caratteri tramite evento 'input' per compatibilità
+// con Android 7 dove e.key restituisce 'Unidentified' per i tasti HID
+
 function hidKeyHandler(e) {
   if (!hidActive) return;
-
   if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
     e.preventDefault();
+    // Legge anche il valore residuo nel campo nel caso l'evento input
+    // non abbia ancora svuotato il buffer (race condition su scan rapido)
+    const cap = document.getElementById('picking-hid-capture');
+    const residuo = cap ? cap.value.trim() : '';
+    if (residuo) { hidBuffer += residuo; if (cap) cap.value = ''; }
+
     const barcode = hidBuffer.trim();
     hidBuffer = '';
     clearTimeout(hidBufferTimer);
     document.getElementById('picking-hid-buffer').textContent = '';
-    if (barcode) {
-      fermaHID();
-      onScanSuccess(barcode);
-    }
-    return;
+    if (barcode) { fermaHID(); onScanSuccess(barcode); }
   }
+}
 
-  if (e.key.length === 1) {
-    hidBuffer += e.key;
-    document.getElementById('picking-hid-buffer').textContent = hidBuffer;
-    // Svuota il campo input per non mostrare testo all'utente
-    const cap = document.getElementById('picking-hid-capture');
-    if (cap) cap.value = '';
-    clearTimeout(hidBufferTimer);
-    hidBufferTimer = setTimeout(() => {
-      hidBuffer = '';
-      document.getElementById('picking-hid-buffer').textContent = '';
-    }, 500);
-  }
+function hidInputHandler(e) {
+  // Fallback: su Android 7 e.key='Unidentified' → leggiamo dal valore del campo
+  if (!hidActive) return;
+  const cap = e.target;
+  const val = cap.value;
+  if (!val) return;
+  hidBuffer += val;
+  cap.value = '';
+  document.getElementById('picking-hid-buffer').textContent = hidBuffer;
+  clearTimeout(hidBufferTimer);
+  hidBufferTimer = setTimeout(() => {
+    hidBuffer = '';
+    document.getElementById('picking-hid-buffer').textContent = '';
+  }, 500);
 }
 
 function avviaHID() {
@@ -290,9 +297,11 @@ function avviaHID() {
 
   const cap = document.getElementById('picking-hid-capture');
   cap.removeEventListener('keydown', hidKeyHandler);
-  cap.removeEventListener('blur', hidOnBlur);
+  cap.removeEventListener('input',   hidInputHandler);
+  cap.removeEventListener('blur',    hidOnBlur);
   cap.addEventListener('keydown', hidKeyHandler);
-  cap.addEventListener('blur', hidOnBlur);
+  cap.addEventListener('input',   hidInputHandler);
+  cap.addEventListener('blur',    hidOnBlur);
   cap.focus();
 }
 
@@ -319,7 +328,8 @@ function fermaHID() {
   clearTimeout(hidRefocusTimer);
   const cap = document.getElementById('picking-hid-capture');
   cap.removeEventListener('keydown', hidKeyHandler);
-  cap.removeEventListener('blur', hidOnBlur);
+  cap.removeEventListener('input',   hidInputHandler);
+  cap.removeEventListener('blur',    hidOnBlur);
   cap.blur();
   document.getElementById('picking-hid-buffer').textContent = '';
   document.getElementById('picking-hid-wrap').classList.add('hidden');
