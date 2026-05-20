@@ -74,8 +74,8 @@ export async function avviaPickingMobile(ordine) {
   modalitaScanner = null;
   document.getElementById('picking-overlay').classList.remove('hidden');
   document.body.classList.add('picking-active');
-  // Prima mostra la scelta modalità
   nascondiTutti();
+  nascondiCard();
   document.getElementById('picking-mode-select').classList.remove('hidden');
 }
 
@@ -175,14 +175,24 @@ function aggiornaUI() {
 }
 
 function nascondiTutti() {
+  // picking-item-card NON è in questa lista — resta sempre visibile durante il picking
   ['picking-mode-select', 'picking-scanner-wrap', 'picking-hid-wrap',
    'picking-confirm-wrap', 'picking-done-wrap', 'picking-success-flash',
-   'picking-main-actions', 'picking-item-card'].forEach(id =>
+   'picking-main-actions'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
   );
 }
 
+function nascondiCard() {
+  document.getElementById('picking-item-card').classList.add('hidden');
+}
+
+function mostraCard() {
+  document.getElementById('picking-item-card').classList.remove('hidden');
+}
+
 async function mostraStatoCompletato() {
+  nascondiCard();
   document.getElementById('picking-done-wrap').classList.remove('hidden');
   try {
     await updateDoc(doc(db, 'prelievi_sessioni', sessioneId), {
@@ -202,6 +212,7 @@ function avviaScan() {
     return;
   }
   nascondiTutti();
+  nascondiCard(); // camera prende tutto lo schermo
   document.getElementById('picking-scanner-wrap').classList.remove('hidden');
   document.getElementById('picking-stop-scan-btn').classList.remove('hidden');
 
@@ -240,7 +251,7 @@ function fermaScan() {
 
 // ─── Modalità HID (scanner fisico) ───────────────────────────────
 function avviaHID() {
-  nascondiTutti();
+  // Non chiama nascondiTutti: si aggiunge sotto la card e le azioni già visibili
   hidActive = true;
   document.getElementById('picking-hid-wrap').classList.remove('hidden');
   document.getElementById('picking-stop-hid-btn').classList.remove('hidden');
@@ -297,7 +308,12 @@ function onScanSuccess(barcode) {
   document.getElementById('picking-confirm-riepilogo').textContent =
     `Stai prelevando ${qty} pz${qty % 30 !== 0 ? ' ⚠️ (quantità anomala)' : ''}`;
 
-  nascondiTutti();
+  // Nasconde solo i controlli di scan, non la card prodotto
+  ['picking-main-actions', 'picking-hid-wrap', 'picking-scanner-wrap'].forEach(id =>
+    document.getElementById(id).classList.add('hidden')
+  );
+  document.getElementById('picking-stop-hid-btn').classList.add('hidden');
+  mostraCard(); // assicura card visibile (dopo camera che la nasconde)
   document.getElementById('picking-confirm-wrap').classList.remove('hidden');
 }
 
