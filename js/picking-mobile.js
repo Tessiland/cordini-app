@@ -7,12 +7,14 @@ import { sbloccaAudio, suonoOk, suonoErrore } from './audio-mobile.js';
 
 let db, operatoreCorrente;
 let sessioneId   = null;
-let sessioneData = null;   // copia locale { scansioni: [], ... }
+let sessioneData = null;
 let ordineCorrente = null;
-let pickingList    = [];   // [{sku, nome, colore, ubicazione, idProdottoFinito, qtyRichiesta, qtyPrelevata, origIdx, completato}]
+let pickingList    = [];
 let itemIdx        = 0;
 let qrcodeScanner  = null;
 let scanActive     = false;
+let hidActive      = false;
+let hidRefocusTimer = null;
 
 // ─── Init ─────────────────────────────────────────────────────────
 export function initPickingMobile(firestoreDb, email) {
@@ -21,7 +23,9 @@ export function initPickingMobile(firestoreDb, email) {
 
   document.getElementById('picking-exit-btn').addEventListener('click', mostraModaleUscita);
   document.getElementById('picking-scan-btn').addEventListener('click', avviaScan);
+  document.getElementById('picking-hid-btn').addEventListener('click', avviaHID);
   document.getElementById('picking-stop-scan-btn').addEventListener('click', () => { fermaScan(); aggiornaUI(); });
+  document.getElementById('picking-stop-hid-btn').addEventListener('click', () => { fermaHID(); aggiornaUI(); });
   document.getElementById('picking-confirm-ok').addEventListener('click', confermaScan);
   document.getElementById('picking-confirm-cancel').addEventListener('click', () => { nascondiTutti(); aggiornaUI(); });
   document.getElementById('picking-undo-btn').addEventListener('click', undoUltimaScan);
@@ -144,7 +148,7 @@ function aggiornaUI() {
 }
 
 function nascondiTutti() {
-  ['picking-scanner-wrap', 'picking-confirm-wrap',
+  ['picking-scanner-wrap', 'picking-hid-wrap', 'picking-confirm-wrap',
    'picking-done-wrap', 'picking-success-flash',
    'picking-main-actions', 'picking-item-card'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
@@ -205,6 +209,48 @@ function fermaScan() {
       qrcodeScanner = null;
     });
   }
+}
+
+// ─── Modalità HID (scanner fisico) ───────────────────────────────
+function avviaHID() {
+  nascondiTutti();
+  hidActive = true;
+  document.getElementById('picking-hid-wrap').classList.remove('hidden');
+  document.getElementById('picking-stop-hid-btn').classList.remove('hidden');
+
+  const input = document.getElementById('picking-hid-input');
+  input.value = '';
+  input.focus();
+
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const barcode = input.value.trim();
+      input.value = '';
+      if (barcode) {
+        fermaHID();
+        onScanSuccess(barcode);
+      }
+    }
+  };
+
+  // Rifocalizza automaticamente se il campo perde il focus
+  input.onblur = () => {
+    if (hidActive) {
+      hidRefocusTimer = setTimeout(() => { if (hidActive) input.focus(); }, 100);
+    }
+  };
+}
+
+function fermaHID() {
+  hidActive = false;
+  clearTimeout(hidRefocusTimer);
+  const input = document.getElementById('picking-hid-input');
+  input.onkeydown = null;
+  input.onblur    = null;
+  input.value     = '';
+  document.getElementById('picking-hid-wrap').classList.add('hidden');
+  document.getElementById('picking-stop-hid-btn').classList.add('hidden');
 }
 
 function onScanSuccess(barcode) {
@@ -483,6 +529,7 @@ async function annullaTutto() {
 
 function chiudiOverlay() {
   fermaScan();
+  fermaHID();
   document.getElementById('picking-overlay').classList.add('hidden');
   document.getElementById('modal-picking-exit').classList.add('hidden');
   document.body.classList.remove('picking-active');

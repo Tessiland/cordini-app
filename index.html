@@ -725,9 +725,12 @@
   <!-- Area di stampa — nascosta, visibile solo con window.print() -->
   <div id="print-area" style="display:none"></div>
 
-  <!-- Bottone annulla scanner — fixed z-index 2000, fuori da qualsiasi overlay -->
+  <!-- Bottoni annulla scanner — fixed z-index 2000, fuori da qualsiasi overlay -->
   <button id="picking-stop-scan-btn" class="picking-stop-scan-btn hidden">
-    <i class="fas fa-xmark"></i> Annulla scansione
+    <i class="fas fa-xmark"></i> Annulla camera
+  </button>
+  <button id="picking-stop-hid-btn" class="picking-stop-scan-btn picking-stop-hid-btn hidden">
+    <i class="fas fa-xmark"></i> Esci da scanner fisico
   </button>
 
   <!-- ===================== PICKING MOBILE OVERLAY ===================== -->
@@ -775,12 +778,28 @@
         </div>
         <p class="picking-confirm-hint">Modifica se il cartone non è da 30</p>
       </div>
-      <button id="picking-scan-btn" class="picking-btn-scan">
-        <i class="fas fa-barcode"></i> Scansiona
-      </button>
+      <div class="picking-scan-buttons">
+        <button id="picking-scan-btn" class="picking-btn-scan picking-btn-camera">
+          <i class="fas fa-camera"></i> Camera
+        </button>
+        <button id="picking-hid-btn" class="picking-btn-scan picking-btn-hid">
+          <i class="fas fa-gun"></i> Scanner fisico
+        </button>
+      </div>
       <button id="picking-undo-btn" class="picking-btn-undo" disabled>
         <i class="fas fa-rotate-left"></i> Annulla ultima
       </button>
+    </div>
+
+    <!-- Modalità HID scanner fisico -->
+    <div id="picking-hid-wrap" class="picking-hid-wrap hidden">
+      <div class="picking-hid-status">
+        <span class="picking-hid-dot"></span> Pronto — scansiona il codice con il palmare
+      </div>
+      <input id="picking-hid-input" class="picking-hid-input"
+             type="text" autocomplete="off" autocorrect="off"
+             autocapitalize="off" spellcheck="false"
+             placeholder="In attesa del codice…">
     </div>
 
     <!-- Scanner camera -->
