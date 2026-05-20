@@ -795,6 +795,11 @@
       </button>
     </div>
 
+    <!-- Input nascosto per cattura HID — inputmode=none previene tastiera virtuale -->
+    <input id="picking-hid-capture" type="text" inputmode="none"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           style="position:fixed;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px;pointer-events:none">
+
     <!-- Modalità HID scanner fisico -->
     <div id="picking-hid-wrap" class="picking-hid-wrap hidden">
       <div class="picking-hid-status">

@@ -14,9 +14,10 @@ let itemIdx         = 0;
 let modalitaScanner = null;  // 'camera' | 'hid' — scelto una volta all'apertura
 let qrcodeScanner   = null;
 let scanActive      = false;
-let hidActive      = false;
-let hidBuffer      = '';
-let hidBufferTimer = null;
+let hidActive       = false;
+let hidBuffer       = '';
+let hidBufferTimer  = null;
+let hidRefocusTimer = null;
 
 // ─── Init ─────────────────────────────────────────────────────────
 export function initPickingMobile(firestoreDb, email) {
@@ -279,13 +280,25 @@ function hidKeyHandler(e) {
 }
 
 function avviaHID() {
-  // Nessun input focalizzato → nessuna tastiera virtuale
-  hidActive  = true;
-  hidBuffer  = '';
+  hidActive = true;
+  hidBuffer = '';
   document.getElementById('picking-hid-buffer').textContent = '';
   document.getElementById('picking-hid-wrap').classList.remove('hidden');
-  document.getElementById('picking-stop-hid-btn').classList.remove('hidden');
-  document.addEventListener('keydown', hidKeyHandler);
+
+  // Input nascosto off-screen con inputmode=none → cattura keystroke HID senza tastiera virtuale
+  const cap = document.getElementById('picking-hid-capture');
+  cap.value = '';
+  cap.addEventListener('keydown', hidKeyHandler);
+  cap.addEventListener('blur', hidOnBlur);
+  cap.focus();
+}
+
+function hidOnBlur() {
+  if (hidActive) {
+    hidRefocusTimer = setTimeout(() => {
+      if (hidActive) document.getElementById('picking-hid-capture').focus();
+    }, 80);
+  }
 }
 
 function fermaHIDCompleto() {
@@ -300,10 +313,13 @@ function fermaHID() {
   hidActive = false;
   hidBuffer = '';
   clearTimeout(hidBufferTimer);
-  document.removeEventListener('keydown', hidKeyHandler);
+  clearTimeout(hidRefocusTimer);
+  const cap = document.getElementById('picking-hid-capture');
+  cap.removeEventListener('keydown', hidKeyHandler);
+  cap.removeEventListener('blur', hidOnBlur);
+  cap.blur();
   document.getElementById('picking-hid-buffer').textContent = '';
   document.getElementById('picking-hid-wrap').classList.add('hidden');
-  document.getElementById('picking-stop-hid-btn').classList.add('hidden');
 }
 
 function onScanSuccess(barcode) {
