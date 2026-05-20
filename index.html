@@ -41,9 +41,14 @@
 
     <!-- HEADER -->
     <header class="app-header">
-      <div class="header-brand">
-        <span class="brand-monogram brand-monogram--sm">C</span>
-        <span class="brand-name">Cordini</span>
+      <div style="display:flex;align-items:center;gap:.625rem">
+        <button id="hamburger-btn" class="hamburger-btn" title="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="header-brand">
+          <span class="brand-monogram brand-monogram--sm">C</span>
+          <span class="brand-name">Cordini</span>
+        </div>
       </div>
       <div class="header-user">
         <span id="user-email-display"></span>
@@ -52,6 +57,37 @@
         </button>
       </div>
     </header>
+
+    <!-- SIDE NAV PANEL -->
+    <div id="nav-backdrop" class="nav-backdrop hidden"></div>
+    <nav id="side-nav" class="side-nav">
+      <div class="side-nav-header">
+        <span class="side-nav-title">Menu</span>
+        <button id="side-nav-close" class="btn-icon"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="side-nav-items">
+        <button class="side-nav-item active" data-view="magazzino">
+          <i class="fas fa-warehouse"></i><span>Magazzino</span>
+        </button>
+        <button class="side-nav-item" data-view="alert">
+          <i class="fas fa-bell"></i><span>Alert</span>
+          <span id="alert-badge-side" class="side-nav-badge hidden"></span>
+        </button>
+        <button class="side-nav-item" data-view="ordini">
+          <i class="fas fa-file-invoice"></i><span>Ordini</span>
+        </button>
+        <button class="side-nav-item" data-view="bacheca">
+          <i class="fas fa-comments"></i><span>Bacheca</span>
+          <span id="bacheca-badge-side" class="side-nav-badge hidden">!</span>
+        </button>
+        <button class="side-nav-item" data-view="produzione">
+          <i class="fas fa-industry"></i><span>Produzione</span>
+        </button>
+        <button class="side-nav-item" data-view="catalogo">
+          <i class="fas fa-book-open"></i><span>Catalogo</span>
+        </button>
+      </div>
+    </nav>
 
     <!-- CONTENT -->
     <main class="app-content">
@@ -744,10 +780,10 @@
 
     <!-- Scanner camera -->
     <div id="picking-scanner-wrap" class="picking-scanner-wrap hidden">
-      <div id="picking-reader"></div>
-      <button id="picking-stop-scan-btn" class="btn-ghost btn-sm" style="margin-top:.75rem">
+      <button id="picking-stop-scan-btn" class="picking-stop-scan-btn">
         <i class="fas fa-xmark"></i> Annulla scansione
       </button>
+      <div id="picking-reader"></div>
     </div>
 
     <!-- Conferma prelievo (dopo scan) -->

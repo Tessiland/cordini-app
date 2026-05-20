@@ -392,7 +392,7 @@ input[type="file"] {
 .app-content {
   flex: 1;
   padding-top: var(--header-height);
-  padding-bottom: var(--nav-height);
+  padding-bottom: 1rem;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -967,18 +967,7 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
    BOTTOM NAVIGATION
 ================================================================ */
 .bottom-nav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: var(--nav-height);
-  background: rgba(30, 41, 59, 0.96);
-  border-top: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  padding: 0 0.25rem;
-  padding-bottom: env(safe-area-inset-bottom);
-  z-index: 100;
+  display: none; /* sostituito dal side-nav hamburger */
 }
 
 .nav-item {
@@ -3170,6 +3159,136 @@ body.picking-active { overflow: hidden; }
 /* Distinta stampa — anomalia */
 .distinta-anomalia td { background: color-mix(in srgb, var(--warning) 8%, transparent); }
 .distinta-alert { font-size: 1rem; }
+
+/* ── Hamburger button ─────────────────────────────────────────── */
+.hamburger-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: .4rem .5rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.hamburger-btn:hover { background: var(--surface-2); }
+
+/* ── Backdrop ─────────────────────────────────────────────────── */
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(2px);
+}
+
+/* ── Side nav panel ───────────────────────────────────────────── */
+.side-nav {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 260px;
+  z-index: 200;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.side-nav.open { transform: translateX(0); }
+
+.side-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.side-nav-title {
+  font-size: .85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-muted);
+}
+
+.side-nav-items {
+  padding: .5rem 0;
+  flex: 1;
+}
+.side-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: .875rem 1.25rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: .95rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s;
+}
+.side-nav-item i {
+  font-size: 1.1rem;
+  width: 1.25rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+.side-nav-item span:not(.side-nav-badge) { flex: 1; }
+.side-nav-item:hover { background: var(--surface-2); color: var(--text-primary); }
+.side-nav-item.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  font-weight: 600;
+}
+.side-nav-item.active i { color: var(--accent); }
+
+.side-nav-badge {
+  background: var(--danger);
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 700;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .3rem;
+}
+
+/* ── Scanner stop button (sopra la camera) ────────────────────── */
+.picking-stop-scan-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  width: 100%;
+  padding: .75rem;
+  margin-bottom: .75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 10;
+  position: relative;
+}
+.picking-stop-scan-btn:active { opacity: .7; }
 
 /* btn-ghost-danger (già potrebbe esistere, assicuriamolo) */
 .btn-ghost-danger {
