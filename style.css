@@ -3101,16 +3101,17 @@ body.picking-active { overflow: hidden; }
 .picking-hid-capture {
   display: block;
   width: 100%;
-  height: 1px;
+  height: 44px;        /* altezza reale: Android focalizza correttamente */
+  margin-bottom: -44px; /* collassa lo spazio per non spostare il layout */
   opacity: 0;
   border: none;
   padding: 0;
-  margin: 0;
   outline: none;
   background: transparent;
   color: transparent;
   caret-color: transparent;
-  font-size: 16px; /* previene zoom su iOS */
+  font-size: 16px;
+  -webkit-user-select: none;
 }
 
 .picking-hid-buffer {

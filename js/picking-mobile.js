@@ -289,11 +289,11 @@ function avviaHID() {
   document.getElementById('picking-hid-wrap').classList.remove('hidden');
 
   const cap = document.getElementById('picking-hid-capture');
-  cap.value = '';
+  cap.removeEventListener('keydown', hidKeyHandler);
+  cap.removeEventListener('blur', hidOnBlur);
   cap.addEventListener('keydown', hidKeyHandler);
   cap.addEventListener('blur', hidOnBlur);
-  // Piccolo delay per garantire che l'elemento sia visibile nel DOM prima del focus
-  setTimeout(() => { if (hidActive) cap.focus(); }, 50);
+  cap.focus();
 }
 
 function hidOnBlur() {

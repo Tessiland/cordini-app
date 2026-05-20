@@ -797,9 +797,10 @@
 
     <!-- Modalità HID scanner fisico -->
     <div id="picking-hid-wrap" class="picking-hid-wrap hidden">
-      <!-- Input nel viewport con inputmode=none: cattura HID senza tastiera virtuale -->
-      <input id="picking-hid-capture" type="text" inputmode="none"
-             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      <!-- Input focalizzabile: readonly blocca tastiera, HID fisico bypassa readonly -->
+      <input id="picking-hid-capture" type="text" readonly
+             inputmode="none" autocomplete="off" autocorrect="off"
+             autocapitalize="off" spellcheck="false"
              class="picking-hid-capture">
       <div class="picking-hid-status">
         <span class="picking-hid-dot"></span> Pronto — scansiona il codice con il palmare
