@@ -44,6 +44,7 @@
       <div style="display:flex;align-items:center;gap:.625rem">
         <button id="hamburger-btn" class="hamburger-btn" title="Menu">
           <i class="fas fa-bars"></i>
+          <span id="hamburger-badge" class="hamburger-badge hidden"></span>
         </button>
         <div class="header-brand">
           <span class="brand-monogram brand-monogram--sm">C</span>
@@ -230,8 +231,13 @@
           <button class="guida-btn" data-guida="produzione" title="Guida"><i class="fas fa-circle-info"></i></button>
         </div>
 
-        <!-- Import ordine da WMS -->
-        <div class="upload-card">
+        <!-- Lista ordini -->
+        <div id="prod-ordini-list">
+          <p class="empty-state">Nessun ordine attivo.</p>
+        </div>
+
+        <!-- Import ordine da WMS — in fondo -->
+        <div class="upload-card" style="margin-top:1.5rem">
           <h3><i class="fas fa-file-import" style="color:var(--accent);margin-right:.4rem"></i>Importa Ordine da WMS</h3>
           <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.875rem">
             Seleziona il file .xlsx esportato dal WMS. Ogni ordine viene matchato con il Magazzino Prodotto Finito tramite SKU.
@@ -244,11 +250,6 @@
             <i class="fas fa-upload"></i> Importa Ordine
           </button>
           <p id="prod-import-status" style="font-size:.8rem;margin-top:.625rem;min-height:1.2em"></p>
-        </div>
-
-        <!-- Lista ordini -->
-        <div id="prod-ordini-list">
-          <p class="empty-state">Nessun ordine attivo.</p>
         </div>
       </section>
 

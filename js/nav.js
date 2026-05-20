@@ -21,9 +21,10 @@ export function initNav() {
   document.getElementById('side-nav-close').addEventListener('click', chiudiSideNav);
   document.getElementById('nav-backdrop').addEventListener('click', chiudiSideNav);
 
-  // Sincronizza badge dal bottom-nav ai badge side-nav via MutationObserver
+  // Sincronizza badge: bottom-nav → side-nav + badge hamburger
   sincronizzaBadge('alert-badge',   'alert-badge-side');
   sincronizzaBadge('bacheca-badge', 'bacheca-badge-side');
+  sincronizzaBadgeHamburger();
 
   // Tab bars
   document.querySelectorAll('.tab-bar').forEach(bar => {
@@ -62,11 +63,33 @@ function sincronizzaBadge(srcId, dstId) {
   const sync = () => {
     dst.textContent = src.textContent;
     dst.className   = src.className.replace(srcId, dstId);
+    aggiornaHamburgerBadge();
   };
   sync();
   new MutationObserver(sync).observe(src, {
     attributes: true, childList: true, characterData: true, subtree: true
   });
+}
+
+function sincronizzaBadgeHamburger() {
+  // Osserva entrambi i badge sorgente
+  ['alert-badge', 'bacheca-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) new MutationObserver(aggiornaHamburgerBadge).observe(el, {
+      attributes: true, childList: true, characterData: true, subtree: true
+    });
+  });
+  aggiornaHamburgerBadge();
+}
+
+function aggiornaHamburgerBadge() {
+  const hb = document.getElementById('hamburger-badge');
+  if (!hb) return;
+  const alertBadge   = document.getElementById('alert-badge');
+  const bacheaBadge  = document.getElementById('bacheca-badge');
+  const hasAlert  = alertBadge  && !alertBadge.classList.contains('hidden');
+  const hasBacheca = bacheaBadge && !bacheaBadge.classList.contains('hidden');
+  hb.classList.toggle('hidden', !hasAlert && !hasBacheca);
 }
 
 export function switchView(viewName) {

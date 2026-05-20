@@ -392,7 +392,7 @@ input[type="file"] {
 .app-content {
   flex: 1;
   padding-top: var(--header-height);
-  padding-bottom: 1rem;
+  padding-bottom: var(--nav-height); /* desktop: spazio per bottom nav */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -966,8 +966,31 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 /* ================================================================
    BOTTOM NAVIGATION
 ================================================================ */
+/* Desktop: bottom nav visibile, hamburger nascosto */
 .bottom-nav {
-  display: none; /* sostituito dal side-nav hamburger */
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--nav-height);
+  background: rgba(30, 41, 59, 0.96);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  padding: 0 0.25rem;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 100;
+}
+.hamburger-btn { display: none; }
+.nav-backdrop, .side-nav { display: none; }
+
+/* Mobile: bottom nav nascosto, hamburger visibile */
+@media (max-width: 767px) {
+  .bottom-nav { display: none; }
+  .hamburger-btn { display: flex; }
+  .app-content { padding-bottom: 1rem; }
+  .nav-backdrop { display: block; }
+  .side-nav { display: flex; }
 }
 
 .nav-item {
@@ -3251,6 +3274,7 @@ body.picking-active { overflow: hidden; }
 
 /* ── Hamburger button ─────────────────────────────────────────── */
 .hamburger-btn {
+  position: relative;
   background: transparent;
   border: none;
   color: var(--text-primary);
@@ -3264,6 +3288,16 @@ body.picking-active { overflow: hidden; }
   -webkit-tap-highlight-color: transparent;
 }
 .hamburger-btn:hover { background: var(--surface-2); }
+.hamburger-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  border: 2px solid var(--bg-base);
+}
 
 /* ── Backdrop ─────────────────────────────────────────────────── */
 .nav-backdrop {

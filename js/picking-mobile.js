@@ -267,11 +267,19 @@ function hidKeyHandler(e) {
     return;
   }
 
+  // e.key può essere 'Unidentified' su Android 7 con scanner HID — fallback su keyCode
+  let char = null;
   if (e.key.length === 1) {
-    hidBuffer += e.key;
+    char = e.key;
+  } else if (e.which || e.keyCode) {
+    const c = String.fromCharCode(e.which || e.keyCode);
+    if (c && c.charCodeAt(0) >= 32) char = c;
+  }
+
+  if (char) {
+    hidBuffer += char;
     document.getElementById('picking-hid-buffer').textContent = hidBuffer;
     clearTimeout(hidBufferTimer);
-    // Reset buffer se il palmare smette di inviare caratteri (timeout 500ms)
     hidBufferTimer = setTimeout(() => {
       hidBuffer = '';
       document.getElementById('picking-hid-buffer').textContent = '';
