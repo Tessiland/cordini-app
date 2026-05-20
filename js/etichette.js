@@ -132,10 +132,6 @@ function senzaParentesi(s) {
   return (s ?? '').replace(/\s*\(.*?\)\s*/g, '').trim();
 }
 
-// Estrae solo il codice ubicazione prima di spazi, trattini o parentesi (es. "AA73 - scaffale 2" → "AA73")
-function soloCodiceLoc(ubicazione) {
-  return (ubicazione || '').split(/[\s\-\/\\(]/)[0].trim();
-}
 
 // ─── Stampa ──────────────────────────────────────────────────────
 function creaLabelHtml(prodotto, descrizione) {
@@ -151,7 +147,7 @@ function creaLabelHtml(prodotto, descrizione) {
       <div class="print-label-partita">${prodotto.partita || '—'}</div>
       <div class="print-label-desc">${descrizione}</div>
       ${prodotto.ubicazione
-        ? `<div class="print-label-ubicazione">${soloCodiceLoc(prodotto.ubicazione)}</div>`
+        ? `<div class="print-label-ubicazione">${prodotto.ubicazione}</div>`
         : ''}
       ${prodotto.sku
         ? `<div class="print-label-barcode"><svg class="print-barcode-svg"></svg></div>`
