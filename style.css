@@ -3101,17 +3101,26 @@ body.picking-active { overflow: hidden; }
 .picking-hid-capture {
   display: block;
   width: 100%;
-  height: 44px;        /* altezza reale: Android focalizza correttamente */
-  margin-bottom: -44px; /* collassa lo spazio per non spostare il layout */
-  opacity: 0;
-  border: none;
-  padding: 0;
-  outline: none;
-  background: transparent;
-  color: transparent;
-  caret-color: transparent;
+  padding: .5rem .75rem;
   font-size: 16px;
-  -webkit-user-select: none;
+  font-family: monospace;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px dashed rgba(124, 58, 237, 0.35);
+  border-radius: var(--radius-sm);
+  color: transparent;
+  caret-color: #7c3aed;
+  outline: none;
+  text-align: center;
+  margin-bottom: .5rem;
+}
+.picking-hid-capture::placeholder {
+  color: rgba(124, 58, 237, 0.5);
+  font-size: .78rem;
+  letter-spacing: .05em;
+}
+.picking-hid-capture:focus {
+  border-color: rgba(124, 58, 237, 0.6);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
 }
 
 .picking-hid-buffer {
