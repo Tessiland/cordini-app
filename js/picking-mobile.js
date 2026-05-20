@@ -302,13 +302,13 @@ function avviaHID() {
   cap.addEventListener('keydown', hidKeyHandler);
   cap.addEventListener('input',   hidInputHandler);
   cap.addEventListener('blur',    hidOnBlur);
-  cap.focus();
+  cap.focus({ preventScroll: true });
 }
 
 function hidOnBlur() {
   if (hidActive) {
     hidRefocusTimer = setTimeout(() => {
-      if (hidActive) document.getElementById('picking-hid-capture').focus();
+      if (hidActive) document.getElementById('picking-hid-capture').focus({ preventScroll: true });
     }, 80);
   }
 }
