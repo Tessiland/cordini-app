@@ -98,7 +98,7 @@ function buildPickingList() {
     .map(item => {
       const pf          = pfCache.find(p => p.id === item.idProdottoFinito);
       const colore      = pf?.coloriComponenti?.length === 1
-        ? pf.coloriComponenti[0].nomeColore ?? pf.colore ?? '—'
+        ? pf.colore || pf.coloriComponenti[0].nomeColore || '—'
         : pf?.colore ?? '—';
       const qtyPrelevata = (sessioneData.scansioni ?? [])
         .filter(s => s.sku === item.sku && !s.annullata)

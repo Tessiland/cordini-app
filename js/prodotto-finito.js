@@ -311,9 +311,7 @@ function creaRigaColore(p) {
 
   const isStock = p.fornitore === 'STOCK';
 
-  const nomeColoreDisplay = p.coloriComponenti?.length === 1
-    ? p.coloriComponenti[0].nomeColore
-    : (p.colore || p.nome || '—');
+  const nomeColoreDisplay = p.colore || p.coloriComponenti?.[0]?.nomeColore || p.nome || '—';
 
   const isRoccatura = p.tipoLavorazione === 'roccatura';
   const mixHtml = p.coloriComponenti?.length > 1

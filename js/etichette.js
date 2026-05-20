@@ -107,9 +107,7 @@ export function stampaEtichetta(prodotto) {
   }
   _prodottoCorrente = { ...prodotto, _descrizione: descObj.descrizione };
 
-  const colore = prodotto.coloriComponenti?.length === 1
-    ? prodotto.coloriComponenti[0].nomeColore
-    : (prodotto.colore || '—');
+  const colore = prodotto.colore || prodotto.coloriComponenti?.[0]?.nomeColore || '—';
 
   document.getElementById('stampa-preview').textContent = `${prodotto.nome} — ${colore}`;
   document.getElementById('stampa-qty').value = '';
@@ -135,9 +133,7 @@ function senzaParentesi(s) {
 
 // ─── Stampa ──────────────────────────────────────────────────────
 function creaLabelHtml(prodotto, descrizione) {
-  const coloreRaw = prodotto.coloriComponenti?.length === 1
-    ? prodotto.coloriComponenti[0].nomeColore
-    : (prodotto.colore || '—');
+  const coloreRaw = prodotto.colore || prodotto.coloriComponenti?.[0]?.nomeColore || '—';
   const colore = senzaParentesi(coloreRaw);
 
   return `
