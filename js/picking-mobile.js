@@ -3,6 +3,7 @@ import {
   serverTimestamp, query, where, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getProdottiFiniti } from './prodotto-finito.js';
+import { sbloccaAudio, suonoOk, suonoErrore } from './audio-mobile.js';
 
 let db, operatoreCorrente;
 let sessioneId   = null;
@@ -173,6 +174,7 @@ function avviaScan() {
   document.getElementById('picking-scanner-wrap').classList.remove('hidden');
   document.getElementById('picking-stop-scan-btn').classList.remove('hidden');
 
+  sbloccaAudio(); // sblocca AudioContext su iOS al gesto utente
   qrcodeScanner = new window.Html5Qrcode('picking-reader');
   scanActive    = true;
 
@@ -210,6 +212,7 @@ function onScanSuccess(barcode) {
   if (!item) return;
 
   if (barcode !== item.sku) {
+    suonoErrore();
     alert(`Barcode non corrisponde.\nAtteso: ${item.sku}\nLetto: ${barcode}`);
     aggiornaUI();
     return;
@@ -236,6 +239,7 @@ async function confermaScan() {
 
   try {
     await eseguiPrelievo(item, qty);
+    suonoOk();
 
     // Flash successo
     nascondiTutti();
