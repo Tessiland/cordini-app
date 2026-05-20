@@ -2943,16 +2943,15 @@ body.picking-active { overflow: hidden; }
   line-height: 1.2;
   margin-bottom: .875rem;
 }
-.picking-item-row-info {
+.picking-item-sku-ub-row {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  font-size: .82rem;
-  color: var(--text-secondary);
+  gap: .4rem;
+  flex-wrap: wrap;
   margin-bottom: .35rem;
 }
 .picking-item-sku-label {
-  font-size: .7rem;
+  font-size: .65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .05em;
@@ -2960,13 +2959,17 @@ body.picking-active { overflow: hidden; }
   background: var(--surface-2);
   padding: .1rem .4rem;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 .picking-item-sku { font-family: monospace; font-size: .9rem; color: var(--text-primary); }
-.picking-item-row-ubicazione { color: var(--accent); font-weight: 600; }
+.picking-item-sep { color: var(--border); font-size: .8rem; }
+.picking-item-loc-icon { color: var(--accent); font-size: .82rem; }
+.picking-item-ubicazione-val { color: var(--accent); font-weight: 700; font-size: .9rem; }
 .picking-item-scan-info {
   margin-top: .875rem;
-  font-size: .78rem;
-  color: var(--text-muted);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-primary);
   border-top: 1px solid var(--border);
   padding-top: .625rem;
 }
@@ -3082,8 +3085,20 @@ body.picking-active { overflow: hidden; }
   opacity: .7;
 }
 
-/* Bottone stop HID — stesso stile del camera ma viola */
-.picking-stop-hid-btn { background: #7c3aed; }
+.picking-hid-change-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: .75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .25rem;
+  padding: .25rem 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.picking-hid-change-btn:active { opacity: .6; }
 
 .picking-btn-undo {
   background: transparent;

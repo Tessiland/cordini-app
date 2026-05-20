@@ -729,9 +729,6 @@
   <button id="picking-stop-scan-btn" class="picking-stop-scan-btn hidden">
     <i class="fas fa-xmark"></i> Annulla camera
   </button>
-  <button id="picking-stop-hid-btn" class="picking-stop-scan-btn picking-stop-hid-btn hidden">
-    <i class="fas fa-xmark"></i> Esci da scanner fisico
-  </button>
 
   <!-- ===================== PICKING MOBILE OVERLAY ===================== -->
   <div id="picking-overlay" class="picking-overlay hidden">
@@ -754,16 +751,16 @@
     <div id="picking-item-card" class="picking-item-card hidden">
       <div class="picking-item-nome" id="picking-item-nome"></div>
       <div class="picking-item-colore" id="picking-item-colore"></div>
-      <div class="picking-item-row-info">
+      <div class="picking-item-sku-ub-row">
         <span class="picking-item-sku-label">SKU</span>
         <span class="picking-item-sku" id="picking-item-sku"></span>
-      </div>
-      <div class="picking-item-row-info picking-item-row-ubicazione">
-        <i class="fas fa-location-dot"></i>
-        <span id="picking-item-ubicazione"></span>
+        <span class="picking-item-sep">·</span>
+        <i class="fas fa-location-dot picking-item-loc-icon"></i>
+        <span class="picking-item-ubicazione-val" id="picking-item-ubicazione"></span>
       </div>
       <div class="picking-item-scan-info">
-        <span id="picking-scan-count">0</span>/<span id="picking-scan-needed">0</span> scansioni &nbsp;·&nbsp;
+        <span id="picking-scan-count">0</span>/<span id="picking-scan-needed">0</span> scansioni
+        &nbsp;·&nbsp;
         <span id="picking-qty-done">0</span>/<span id="picking-qty-totale">0</span> pz
       </div>
     </div>
@@ -803,6 +800,9 @@
         <span class="picking-hid-dot"></span> Pronto — scansiona il codice con il palmare
       </div>
       <div id="picking-hid-buffer" class="picking-hid-buffer"></div>
+      <button id="picking-stop-hid-btn" class="picking-hid-change-btn">
+        <i class="fas fa-arrow-rotate-left"></i> Cambia modalità
+      </button>
     </div>
 
     <!-- Scanner camera -->

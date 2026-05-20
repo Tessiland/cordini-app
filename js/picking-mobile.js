@@ -28,7 +28,7 @@ export function initPickingMobile(firestoreDb, email) {
   document.getElementById('picking-mode-hid').addEventListener('click',    () => scegliModo('hid'));
   document.getElementById('picking-scan-btn').addEventListener('click', avviaScan);
   document.getElementById('picking-stop-scan-btn').addEventListener('click', () => { fermaScan(); aggiornaUI(); });
-  document.getElementById('picking-stop-hid-btn').addEventListener('click', () => { fermaHID(); aggiornaUI(); });
+  document.getElementById('picking-stop-hid-btn').addEventListener('click', fermaHIDCompleto);
   document.getElementById('picking-confirm-ok').addEventListener('click', confermaScan);
   document.getElementById('picking-confirm-cancel').addEventListener('click', () => { nascondiTutti(); aggiornaUI(); });
   document.getElementById('picking-undo-btn').addEventListener('click', undoUltimaScan);
@@ -106,7 +106,7 @@ function buildPickingList() {
 
       return {
         sku:              item.sku,
-        nome:             item.nome ?? '—',
+        nome:             pf?.nome ?? item.nome ?? '—',
         colore,
         ubicazione:       pf?.ubicazione ?? '—',
         idProdottoFinito: item.idProdottoFinito,
@@ -171,8 +171,8 @@ function aggiornaUI() {
   const haScansioni = (sessioneData.scansioni ?? []).some(s => !s.annullata);
   document.getElementById('picking-undo-btn').disabled = !haScansioni;
 
-  // In modalità HID riattiva immediatamente il campo senza toccare nulla
-  if (modalitaScanner === 'hid') avviaHID();
+  // In modalità HID riattiva lo scanner (solo se non già attivo)
+  if (modalitaScanner === 'hid' && !hidActive) avviaHID();
 }
 
 function nascondiTutti() {
@@ -287,6 +287,14 @@ function avviaHID() {
   document.getElementById('picking-hid-wrap').classList.remove('hidden');
   document.getElementById('picking-stop-hid-btn').classList.remove('hidden');
   document.addEventListener('keydown', hidKeyHandler);
+}
+
+function fermaHIDCompleto() {
+  fermaHID();
+  modalitaScanner = null;
+  nascondiTutti();
+  nascondiCard();
+  document.getElementById('picking-mode-select').classList.remove('hidden');
 }
 
 function fermaHID() {
