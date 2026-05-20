@@ -2262,6 +2262,13 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
     text-align: justify;
     margin: 0;
   }
+  .print-label-ubicazione {
+    font-size: 11pt;
+    font-weight: 700;
+    text-align: center;
+    margin: 0.5mm 0 0;
+    flex-shrink: 0;
+  }
   .print-label-barcode {
     flex-shrink: 0;
     text-align: center;
