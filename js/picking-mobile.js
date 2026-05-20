@@ -14,8 +14,9 @@ let itemIdx         = 0;
 let modalitaScanner = null;  // 'camera' | 'hid' — scelto una volta all'apertura
 let qrcodeScanner   = null;
 let scanActive      = false;
-let hidActive       = false;
-let hidRefocusTimer = null;
+let hidActive      = false;
+let hidBuffer      = '';
+let hidBufferTimer = null;
 
 // ─── Init ─────────────────────────────────────────────────────────
 export function initPickingMobile(firestoreDb, email) {
@@ -250,43 +251,50 @@ function fermaScan() {
 }
 
 // ─── Modalità HID (scanner fisico) ───────────────────────────────
+function hidKeyHandler(e) {
+  if (!hidActive) return;
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const barcode = hidBuffer.trim();
+    hidBuffer = '';
+    clearTimeout(hidBufferTimer);
+    document.getElementById('picking-hid-buffer').textContent = '';
+    if (barcode) {
+      fermaHID();
+      onScanSuccess(barcode);
+    }
+    return;
+  }
+
+  if (e.key.length === 1) {
+    hidBuffer += e.key;
+    document.getElementById('picking-hid-buffer').textContent = hidBuffer;
+    clearTimeout(hidBufferTimer);
+    // Reset buffer se il palmare smette di inviare caratteri (timeout 500ms)
+    hidBufferTimer = setTimeout(() => {
+      hidBuffer = '';
+      document.getElementById('picking-hid-buffer').textContent = '';
+    }, 500);
+  }
+}
+
 function avviaHID() {
-  // Non chiama nascondiTutti: si aggiunge sotto la card e le azioni già visibili
-  hidActive = true;
+  // Nessun input focalizzato → nessuna tastiera virtuale
+  hidActive  = true;
+  hidBuffer  = '';
+  document.getElementById('picking-hid-buffer').textContent = '';
   document.getElementById('picking-hid-wrap').classList.remove('hidden');
   document.getElementById('picking-stop-hid-btn').classList.remove('hidden');
-
-  const input = document.getElementById('picking-hid-input');
-  input.value = '';
-  input.focus();
-
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const barcode = input.value.trim();
-      input.value = '';
-      if (barcode) {
-        fermaHID();
-        onScanSuccess(barcode);
-      }
-    }
-  };
-
-  // Rifocalizza automaticamente se il campo perde il focus
-  input.onblur = () => {
-    if (hidActive) {
-      hidRefocusTimer = setTimeout(() => { if (hidActive) input.focus(); }, 100);
-    }
-  };
+  document.addEventListener('keydown', hidKeyHandler);
 }
 
 function fermaHID() {
   hidActive = false;
-  clearTimeout(hidRefocusTimer);
-  const input = document.getElementById('picking-hid-input');
-  input.onkeydown = null;
-  input.onblur    = null;
-  input.value     = '';
+  hidBuffer = '';
+  clearTimeout(hidBufferTimer);
+  document.removeEventListener('keydown', hidKeyHandler);
+  document.getElementById('picking-hid-buffer').textContent = '';
   document.getElementById('picking-hid-wrap').classList.add('hidden');
   document.getElementById('picking-stop-hid-btn').classList.add('hidden');
 }

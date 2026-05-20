@@ -3072,19 +3072,15 @@ body.picking-active { overflow: hidden; }
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: .4; transform: scale(.8); }
 }
-.picking-hid-input {
-  width: 100%;
-  padding: .875rem 1rem;
-  font-size: 1.1rem;
+.picking-hid-buffer {
+  min-height: 2rem;
   font-family: monospace;
-  background: var(--bg-input);
-  border: 2px solid #7c3aed;
-  border-radius: var(--radius);
-  color: var(--text-primary);
+  font-size: 1rem;
+  color: #7c3aed;
   text-align: center;
-  caret-color: #7c3aed;
+  letter-spacing: .1em;
+  opacity: .7;
 }
-.picking-hid-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(124,58,237,.25); }
 
 /* Bottone stop HID — stesso stile del camera ma viola */
 .picking-stop-hid-btn { background: #7c3aed; }
