@@ -271,6 +271,9 @@ function hidKeyHandler(e) {
   if (e.key.length === 1) {
     hidBuffer += e.key;
     document.getElementById('picking-hid-buffer').textContent = hidBuffer;
+    // Svuota il campo input per non mostrare testo all'utente
+    const cap = document.getElementById('picking-hid-capture');
+    if (cap) cap.value = '';
     clearTimeout(hidBufferTimer);
     hidBufferTimer = setTimeout(() => {
       hidBuffer = '';
@@ -285,12 +288,12 @@ function avviaHID() {
   document.getElementById('picking-hid-buffer').textContent = '';
   document.getElementById('picking-hid-wrap').classList.remove('hidden');
 
-  // Input nascosto off-screen con inputmode=none → cattura keystroke HID senza tastiera virtuale
   const cap = document.getElementById('picking-hid-capture');
   cap.value = '';
   cap.addEventListener('keydown', hidKeyHandler);
   cap.addEventListener('blur', hidOnBlur);
-  cap.focus();
+  // Piccolo delay per garantire che l'elemento sia visibile nel DOM prima del focus
+  setTimeout(() => { if (hidActive) cap.focus(); }, 50);
 }
 
 function hidOnBlur() {
