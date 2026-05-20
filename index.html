@@ -725,6 +725,11 @@
   <!-- Area di stampa — nascosta, visibile solo con window.print() -->
   <div id="print-area" style="display:none"></div>
 
+  <!-- Bottone annulla scanner — fixed z-index 2000, fuori da qualsiasi overlay -->
+  <button id="picking-stop-scan-btn" class="picking-stop-scan-btn hidden">
+    <i class="fas fa-xmark"></i> Annulla scansione
+  </button>
+
   <!-- ===================== PICKING MOBILE OVERLAY ===================== -->
   <div id="picking-overlay" class="picking-overlay hidden">
 
@@ -780,9 +785,6 @@
 
     <!-- Scanner camera -->
     <div id="picking-scanner-wrap" class="picking-scanner-wrap hidden">
-      <button id="picking-stop-scan-btn" class="picking-stop-scan-btn">
-        <i class="fas fa-xmark"></i> Annulla scansione
-      </button>
       <div id="picking-reader"></div>
     </div>
 

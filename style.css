@@ -3268,27 +3268,30 @@ body.picking-active { overflow: hidden; }
   padding: 0 .3rem;
 }
 
-/* ── Scanner stop button (sopra la camera) ────────────────────── */
+/* ── Scanner stop button — fixed sopra tutto, inattaccabile dalla libreria ── */
 .picking-stop-scan-btn {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: .4rem;
-  width: 100%;
-  padding: .75rem;
-  margin-bottom: .75rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-secondary);
-  font-size: .9rem;
-  font-weight: 600;
+  gap: .5rem;
+  padding: .875rem 2rem;
+  background: var(--danger);
+  border: none;
+  border-radius: 99px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
   -webkit-tap-highlight-color: transparent;
-  z-index: 10;
-  position: relative;
+  white-space: nowrap;
 }
-.picking-stop-scan-btn:active { opacity: .7; }
+.picking-stop-scan-btn:active { opacity: .8; }
 
 /* btn-ghost-danger (già potrebbe esistere, assicuriamolo) */
 .btn-ghost-danger {

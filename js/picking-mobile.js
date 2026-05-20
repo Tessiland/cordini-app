@@ -171,6 +171,7 @@ function avviaScan() {
   }
   nascondiTutti();
   document.getElementById('picking-scanner-wrap').classList.remove('hidden');
+  document.getElementById('picking-stop-scan-btn').classList.remove('hidden');
 
   qrcodeScanner = new window.Html5Qrcode('picking-reader');
   scanActive    = true;
@@ -194,13 +195,14 @@ function avviaScan() {
 
 function fermaScan() {
   scanActive = false;
+  document.getElementById('picking-scanner-wrap').classList.add('hidden');
+  document.getElementById('picking-stop-scan-btn').classList.add('hidden');
   if (qrcodeScanner) {
     qrcodeScanner.stop().catch(() => {}).finally(() => {
       try { qrcodeScanner.clear(); } catch (_) {}
       qrcodeScanner = null;
     });
   }
-  document.getElementById('picking-scanner-wrap').classList.add('hidden');
 }
 
 function onScanSuccess(barcode) {
