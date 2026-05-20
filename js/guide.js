@@ -70,19 +70,24 @@ const GUIDE = {
   produzione: {
     titolo: 'Produzione',
     flusso: [
-      'Ricevi l\'Excel dall\'hub e clicca <b>Importa Ordine</b>. L\'app abbina ogni riga al prodotto finito in magazzino.',
+      'Ricevi l\'Excel dall\'hub e clicca <b>Importa Ordine</b>. L\'app abbina ogni riga al prodotto finito in magazzino tramite SKU.',
       'La lista è ordinata per <b>ubicazione</b>: segui l\'ordine dall\'alto per fare il percorso più efficiente in magazzino.',
-      'Spunta i prodotti man mano che li prelevi. La quantità viene scalata dal magazzino automaticamente.',
-      'I prodotti in rosso (DA PRODURRE) non sono disponibili: sono raggruppati in fondo.',
-      'Stampa la <b>Lista di Lavoro</b> prima di iniziare il picking. Stampa il <b>Documento di Consegna</b> quando hai finito.',
+      '<b>Da PC:</b> spunta i prodotti uno a uno cliccando il segno di spunta. La quantità viene scalata dal magazzino automaticamente.',
+      '<b>Da mobile:</b> clicca <b>Picking Mobile</b> per aprire lo scanner. Ogni scansione del barcode sul cartone preleva 30 pz (modificabile). L\'app avanza automaticamente all\'articolo successivo.',
+      'I prodotti in rosso (DA PRODURRE) non sono disponibili: sono raggruppati in fondo alla lista.',
+      'Stampa la <b>Lista di Lavoro</b> prima di iniziare. Stampa il <b>Documento di Consegna</b> quando hai finito — da mobile usa la <b>Distinta di Consegna</b> generata alla fine del picking.',
     ],
     funzioni: [
       { ic: 'fa-file-import',    txt: '<b>Importa Ordine</b> — carica l\'Excel dell\'hub (formato: num, sku, qty_ord, name…)' },
+      { ic: 'fa-barcode',        txt: '<b>Picking Mobile</b> — apre lo scanner da smartphone: mostra articolo per articolo con nome, colore, SKU e ubicazione' },
       { ic: 'fa-print',          txt: '<b>Lista di Lavoro</b> — foglio picking con ubicazione e partita per ogni prodotto' },
-      { ic: 'fa-file-invoice',   txt: '<b>Documento di Consegna</b> — accompagna la merce all\'hub; evidenzia NUOVA PARTITA e ELIMINATO' },
-      { ic: 'fa-check',          txt: '<b>Spunta</b> — segna il prodotto come consegnato e scala le rocche dal magazzino' },
-      { ic: 'fa-pen-to-square',  txt: '<b>Quantità modificabile</b> — clicca il numero richiesto per modificarlo (utile per gestire partite separate)' },
+      { ic: 'fa-file-invoice',   txt: '<b>Documento di Consegna</b> — accompagna la merce all\'hub; evidenzia NUOVA PARTITA, ELIMINATO e righe parziali' },
+      { ic: 'fa-check',          txt: '<b>Spunta (da PC)</b> — segna il prodotto come consegnato e scala le rocche dal magazzino' },
+      { ic: 'fa-pen-to-square',  txt: '<b>Quantità modificabile</b> — clicca il numero richiesto per cambiarlo prima della spunta' },
+      { ic: 'fa-rotate-left',    txt: '<b>Annulla ultima (mobile)</b> — inverte l\'ultimo prelievo scansionato e ricarica le rocche a magazzino' },
+      { ic: 'fa-pause',          txt: '<b>Sospendi (mobile)</b> — salva il progresso e torna all\'ordine; puoi riprendere in seguito' },
       { ic: 'fa-trash',          txt: '<b>Elimina ordine</b> — se ci sono prodotti già spuntati, le rocche vengono restituite al magazzino' },
+      { ic: 'fa-triangle-exclamation', txt: '<b>⚠️ Distinta</b> — appare sulle righe dove la quantità consegnata non è multipla di 30: da verificare nel WMS dell\'hub' },
     ]
   },
 
