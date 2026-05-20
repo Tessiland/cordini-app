@@ -93,7 +93,7 @@ function buildPickingList() {
         idProdottoFinito: item.idProdottoFinito,
         qtyRichiesta:     item.qtyRichiesta,
         qtyPrelevata,
-        origIdx,
+        origIdx:          item.origIdx,
         completato:       item.spuntato || qtyPrelevata >= item.qtyRichiesta
       };
     });
