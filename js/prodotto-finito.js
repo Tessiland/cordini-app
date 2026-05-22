@@ -28,6 +28,7 @@ export function initProdottoFinito(firestoreDb) {
   carica();
 
   document.getElementById('search-pf').addEventListener('input', render);
+  document.getElementById('search-pf-sku').addEventListener('input', render);
   document.getElementById('list-prodotto-finito').addEventListener('click', gestisciClick);
   document.getElementById('add-pf-btn').addEventListener('click', apriAggiungi);
   document.getElementById('form-prodotto-finito').addEventListener('submit', salva);
@@ -98,6 +99,7 @@ function carica() {
 // ─── Render accordion annidato ───────────────────────────────────
 function render() {
   const testo = document.getElementById('search-pf').value.toLowerCase();
+  const testoSku = document.getElementById('search-pf-sku').value.toLowerCase();
 
   const filtrati = tuttiProdottiFiniti.filter(p =>
     !p.eliminato &&
@@ -105,8 +107,8 @@ function render() {
       p.fornitore?.toLowerCase().includes(testo) ||
       p.nome?.toLowerCase().includes(testo) ||
       p.colore?.toLowerCase().includes(testo) ||
-      p.partita?.toLowerCase().includes(testo) ||
-      p.sku?.toLowerCase().includes(testo))
+      p.partita?.toLowerCase().includes(testo)) &&
+    (!testoSku || p.sku?.toLowerCase().includes(testoSku))
   );
 
   const container = document.getElementById('list-prodotto-finito');
