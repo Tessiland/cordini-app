@@ -105,7 +105,8 @@ function render() {
       p.fornitore?.toLowerCase().includes(testo) ||
       p.nome?.toLowerCase().includes(testo) ||
       p.colore?.toLowerCase().includes(testo) ||
-      p.partita?.toLowerCase().includes(testo))
+      p.partita?.toLowerCase().includes(testo) ||
+      p.sku?.toLowerCase().includes(testo))
   );
 
   const container = document.getElementById('list-prodotto-finito');
@@ -574,6 +575,7 @@ function apriModifica(id) {
   document.getElementById('pf-tipologia').value  = p.nome         ?? '';
   document.getElementById('pf-ubicazione').value = p.ubicazione   ?? '';
   document.getElementById('pf-partita').value    = p.partita      ?? '';
+  document.getElementById('pf-sku').value        = p.sku          ?? '';
   document.getElementById('pf-rocche').value     = p.quantitaRocche ?? 0;
   document.getElementById('pf-soglia').value     = p.sogliaAvviso ?? 0;
   const lav = document.querySelector(`input[name="pf-lavorazione"][value="${p.tipoLavorazione ?? 'cordini'}"]`);
@@ -661,6 +663,7 @@ async function salva(e) {
     coloriComponenti: coloriDaSalvare,
     ubicazione:       document.getElementById('pf-ubicazione').value.trim(),
     partita:          document.getElementById('pf-partita').value.trim(),
+    sku:              document.getElementById('pf-sku').value.trim(),
     quantitaRocche:   Number(document.getElementById('pf-rocche').value),
     sogliaAvviso:     Number(document.getElementById('pf-soglia').value),
     tipoLavorazione:  document.querySelector('input[name="pf-lavorazione"]:checked').value
