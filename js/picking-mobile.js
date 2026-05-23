@@ -160,6 +160,9 @@ function aggiornaUI() {
   document.getElementById('picking-qty-done').textContent        = item.qtyPrelevata;
   document.getElementById('picking-qty-totale').textContent      = item.qtyRichiesta;
 
+  const residuo = item.qtyRichiesta - item.qtyPrelevata;
+  document.getElementById('picking-qty-input').value = Math.min(30, Math.max(1, residuo));
+
   const scansNec = Math.ceil(item.qtyRichiesta / 30);
   const scansFatte = (sessioneData.scansioni ?? [])
     .filter(s => s.sku === item.sku && !s.annullata).length;
