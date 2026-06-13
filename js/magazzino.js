@@ -8,7 +8,7 @@ import { openModal, closeModal } from './nav.js';
 let db;
 let operatoreCorrente = 'Operatori';
 let tuttiProdotti = [];
-let congelatiVisibile = false;
+let soloCongelati = false;
 
 export function setOperatore(email) {
   operatoreCorrente = email || 'Operatori';
@@ -55,7 +55,6 @@ function caricaProdotti() {
     tuttiProdotti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderProdotti();
     aggiornaArticoliDatalist();
-    if (congelatiVisibile) renderCongelati();
   });
 }
 
@@ -74,7 +73,7 @@ function renderProdotti() {
   const fornitore = document.getElementById('filter-fornitore').value;
 
   const filtrati = tuttiProdotti
-    .filter(p => !p.congelato)
+    .filter(p => !soloCongelati || p.congelato)
     .filter(p => fornitore === 'tutti' || p.idFornitore === fornitore)
     .filter(p =>
       (p.nome?.toLowerCase().includes(testo)) ||
@@ -107,6 +106,7 @@ function creaCardProdotto(p) {
   card.dataset.id = p.id;
 
   const tags = [];
+  if (p.congelato) tags.push(`<span class="tag tag-congelato"><i class="fas fa-snowflake"></i> Congelato</span>`);
   if (ordinato > 0) {
     tags.push(`<span class="tag tag-ordered"><i class="fas fa-truck"></i> Ordinato: ${ordinato}</span>`);
     const dataSpedFmt = p.dataSpedizione
@@ -123,6 +123,10 @@ function creaCardProdotto(p) {
         <div class="product-card-code">${p.codice || '—'}</div>
       </div>
       <div class="product-card-controls">
+        ${p.congelato ? `
+        <button class="btn-icon action-btn-unfreeze ripristina-btn" data-id="${p.id}" title="Ripristina: rimuovi congelamento">
+          <i class="fas fa-fire"></i>
+        </button>` : ''}
         <button class="btn-icon action-btn-edit edit-btn" data-id="${p.id}" title="Modifica">
           <i class="fas fa-pen"></i>
         </button>
@@ -167,6 +171,9 @@ function gestisciClickCard(e) {
     apriModalModifica(id);
   } else if (btn.classList.contains('delete-btn')) {
     eliminaProdotto(id, btn.dataset.nome);
+  } else if (btn.classList.contains('ripristina-btn')) {
+    btn.disabled = true;
+    ripristinaCongelato(id).finally(() => { btn.disabled = false; });
   } else if (btn.classList.contains('plus') || btn.classList.contains('minus')) {
     btn.disabled = true;
     const azione = btn.classList.contains('plus') ? 'increment' : 'decrement';
@@ -283,52 +290,9 @@ async function eliminaProdotto(id, nome) {
 
 // ─── Congelati ────────────────────────────────────────────────────
 function toggleCongelati() {
-  congelatiVisibile = !congelatiVisibile;
-  const btn  = document.getElementById('toggle-congelati-mp');
-  const list = document.getElementById('list-congelati-mp');
-  btn.innerHTML = congelatiVisibile
-    ? `<i class="fas fa-eye-slash"></i> Nascondi Congelati`
-    : `<i class="fas fa-snowflake"></i> Congelati`;
-  list.classList.toggle('hidden', !congelatiVisibile);
-  if (congelatiVisibile) renderCongelati();
-}
-
-function renderCongelati() {
-  const congelati = tuttiProdotti.filter(p => p.congelato);
-  const container = document.getElementById('list-congelati-mp');
-
-  if (congelati.length === 0) {
-    container.innerHTML = '<div class="pf-archivio-section"><h4>Congelati</h4><p class="empty-state">Nessun colore congelato.</p></div>';
-    return;
-  }
-
-  const sorted = [...congelati].sort((a, b) => a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' }));
-
-  container.innerHTML = '';
-  const section = document.createElement('div');
-  section.className = 'pf-archivio-section';
-  section.innerHTML = `<h4><i class="fas fa-snowflake" style="margin-right:.35rem"></i>Congelati (${congelati.length})</h4>`;
-
-  sorted.forEach(p => {
-    const row = document.createElement('div');
-    row.className = 'pf-archivio-row';
-    row.innerHTML = `
-      <div>
-        <div class="pf-archivio-nome">${p.nome}</div>
-        <div class="pf-archivio-meta">
-          ${p.codice ? `<span>${p.codice}</span>` : ''}
-          <span>${p.idFornitore ?? '—'}</span>
-        </div>
-      </div>
-      <button class="btn-ghost btn-sm ripristina-mp-btn" data-id="${p.id}" style="flex-shrink:0">
-        <i class="fas fa-undo"></i> Ripristina
-      </button>
-    `;
-    row.querySelector('.ripristina-mp-btn').addEventListener('click', () => ripristinaCongelato(p.id));
-    section.appendChild(row);
-  });
-
-  container.appendChild(section);
+  soloCongelati = !soloCongelati;
+  document.getElementById('toggle-congelati-mp').classList.toggle('active', soloCongelati);
+  renderProdotti();
 }
 
 async function ripristinaCongelato(id) {

@@ -312,6 +312,7 @@ input[type="file"] {
   transition: color var(--ease), background var(--ease);
 }
 .btn-ghost:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.btn-ghost.active { color: var(--accent); background: var(--accent-dim); }
 
 .btn-full { width: 100%; justify-content: center; }
 
@@ -335,6 +336,8 @@ input[type="file"] {
 .action-btn-edit:hover  { color: var(--accent); }
 .action-btn-del   { color: var(--text-muted); font-size: 0.8rem; }
 .action-btn-del:hover   { color: var(--danger); }
+.action-btn-unfreeze    { color: var(--text-muted); font-size: 0.8rem; }
+.action-btn-unfreeze:hover { color: var(--accent); }
 
 /* ================================================================
    APP LAYOUT
@@ -610,6 +613,7 @@ input[type="file"] {
   letter-spacing: 0.05em;
 }
 
+.tag-congelato  { background: var(--accent);       color: var(--bg-base);  }
 .tag-ordered    { background: var(--accent-dim);   color: var(--accent);   }
 .tag-delivery   { background: var(--success-dim);  color: var(--success);  }
 .tag-spedizione { background: var(--warning-dim);  color: var(--warning);  }
