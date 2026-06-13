@@ -2011,6 +2011,18 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
   font-size: .83rem;
   width: 4.5rem;
 }
+.congela-btn {
+  color: var(--text-muted);
+  font-size: .85rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color var(--ease), background var(--ease);
+}
+.congela-btn:hover { color: var(--accent); background: var(--accent-dim); }
 
 /* Barra collegamento cartella Output */
 .output-folder-bar {

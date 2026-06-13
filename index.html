@@ -115,12 +115,18 @@
             <input type="text" id="search-mp" class="input-search" placeholder="Cerca per nome o codice…">
             <select id="filter-fornitore" class="input-select"></select>
           </div>
-          <button id="add-mp-btn" class="btn-primary btn-sm" style="margin-bottom:.875rem">
-            <i class="fas fa-plus"></i> Aggiungi Materia Prima
-          </button>
+          <div style="display:flex;gap:.5rem;margin-bottom:.875rem;flex-wrap:wrap;align-items:center">
+            <button id="add-mp-btn" class="btn-primary btn-sm">
+              <i class="fas fa-plus"></i> Aggiungi Materia Prima
+            </button>
+            <button id="toggle-congelati-mp" class="btn-ghost btn-sm">
+              <i class="fas fa-snowflake"></i> Congelati
+            </button>
+          </div>
           <div id="list-materia-prima" class="product-list">
             <p class="empty-state">Caricamento…</p>
           </div>
+          <div id="list-congelati-mp" class="hidden"></div>
         </div>
 
         <!-- TAB Prodotto Finito -->
@@ -399,6 +405,11 @@
         <div class="field-group">
           <label for="p-codice">Codice</label>
           <input type="text" id="p-codice">
+        </div>
+        <div class="field-group">
+          <label for="p-articolo">Articolo</label>
+          <input type="text" id="p-articolo" list="articoli-datalist" placeholder="Es. Tornado 1/15 50 cotone 50 acrilico" autocomplete="off">
+          <datalist id="articoli-datalist"></datalist>
         </div>
         <div class="field-group">
           <label for="p-fornitore">Fornitore</label>

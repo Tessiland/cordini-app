@@ -117,7 +117,8 @@ function generaProposte() {
 
   const daOrdinare = prodotti.filter(p =>
     p.quantitaDisponibile <= p.sogliaAvviso &&
-    !(p.quantitaOrdinata > 0)
+    !(p.quantitaOrdinata > 0) &&
+    !p.congelato
   );
 
   const container = document.getElementById('list-proposte');
@@ -149,6 +150,9 @@ function creaCardProposta(fornitore, prodotti) {
       <td><input type="number" class="order-qty-input" value="${p.minimoOrdinabile ?? 1}" min="1"></td>
       <td class="td-unita">${p.unitaDiAcquisto ?? 'BOX'}</td>
       <td><input type="date" class="row-data-consegna"></td>
+      <td><button type="button" class="congela-btn" data-id="${p.id}" data-nome="${p.nome}" title="Congela: non proporre più questo colore">
+        <i class="fas fa-snowflake"></i>
+      </button></td>
     </tr>`).join('');
 
   const card = document.createElement('div');
@@ -168,6 +172,7 @@ function creaCardProposta(fornitore, prodotti) {
           <th>Codice</th><th>Nome</th>
           <th style="width:5rem">Qtà</th><th>Unità</th>
           <th style="width:9rem">Data Spedizione</th>
+          <th style="width:2.5rem"></th>
         </tr></thead>
         <tbody>${righe}</tbody>
       </table>
@@ -201,6 +206,14 @@ function gestisciClickProposte(e) {
     return;
   }
 
+  // "Congela" — il colore non viene più proposto per l'ordine
+  if (btn.classList.contains('congela-btn')) {
+    if (!confirm(`Congelare "${btn.dataset.nome}"?\nNon verrà più proposto per l'ordine. Puoi ripristinarlo da Magazzino → Materia Prima → Congelati.`)) return;
+    btn.disabled = true;
+    congelaProdotto(btn.dataset.id).finally(() => { btn.disabled = false; });
+    return;
+  }
+
   if (!btn.classList.contains('crea-ordine-btn')) return;
 
   const fornitore = card.querySelector('.proposta-fornitore').textContent;
@@ -209,21 +222,38 @@ function gestisciClickProposte(e) {
 
   if (righe.length === 0) { alert('Seleziona almeno un prodotto.'); return; }
 
-  const prodotti = righe.map(row => ({
-    idProdotto:       row.dataset.id,
-    codice:           row.querySelector('.td-codice').textContent,
-    nome:             row.querySelector('.td-nome').textContent,
-    quantitaOrdinata: parseInt(row.querySelector('.order-qty-input').value, 10),
-    unita:            row.querySelector('.td-unita').textContent.trim(),
-    dataSpedizione:     row.querySelector('.row-data-consegna').value || null,
-    ricevuto:         false
-  }));
+  const prodotti = righe.map(row => {
+    const mp = getProdotti().find(p => p.id === row.dataset.id);
+    return {
+      idProdotto:       row.dataset.id,
+      codice:           row.querySelector('.td-codice').textContent,
+      nome:             row.querySelector('.td-nome').textContent,
+      articolo:         mp?.articolo || null,
+      quantitaOrdinata: parseInt(row.querySelector('.order-qty-input').value, 10),
+      unita:            row.querySelector('.td-unita').textContent.trim(),
+      dataSpedizione:     row.querySelector('.row-data-consegna').value || null,
+      ricevuto:         false
+    };
+  });
 
   const invalidi = prodotti.filter(p => isNaN(p.quantitaOrdinata) || p.quantitaOrdinata <= 0);
   if (invalidi.length > 0) { alert(`Quantità non valida per: "${invalidi[0].nome}"`); return; }
 
   btn.disabled = true;
   creaOrdine(fornitore, prodotti).finally(() => { btn.disabled = false; });
+}
+
+// ─── Congela colore ────────────────────────────────────────────────
+async function congelaProdotto(idProdotto) {
+  try {
+    await updateDoc(doc(db, "prodotti", idProdotto), { congelato: true });
+    const p = getProdotti().find(p => p.id === idProdotto);
+    if (p) p.congelato = true;
+    generaProposte();
+  } catch (err) {
+    console.error("Errore congelamento:", err);
+    alert("Errore durante il congelamento.");
+  }
 }
 
 async function creaOrdine(fornitore, prodotti) {
@@ -262,11 +292,12 @@ function generaTestoOrdine(fornitore, prodotti) {
       const dataSpedizione = p.dataSpedizione
         ? ` (consegna: ${new Date(p.dataSpedizione + 'T00:00:00').toLocaleDateString('it-IT')})`
         : '';
-      return `• ${p.codice} — ${p.nome} — ${p.quantitaOrdinata} ${p.unita}${dataSpedizione}`;
+      const descrizione = p.articolo ? `${p.articolo}, colore ${p.nome}` : p.nome;
+      return `• ${p.codice} — ${descrizione} — ${p.quantitaOrdinata} ${p.unita}${dataSpedizione}`;
     })
     .join('\n');
 
-  return `Ordine Tessiland — ${data}
+  return `Ordine ONIRICA s.r.l. — ${data}
 
 Spett. ${fornitore},
 
@@ -274,7 +305,7 @@ Si richiede la seguente fornitura:
 ${righe}
 
 Cordiali saluti
-Tessiland`;
+ONIRICA s.r.l.`;
 }
 
 function mostraTestoEmail(testo) {

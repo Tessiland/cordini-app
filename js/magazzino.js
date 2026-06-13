@@ -8,6 +8,7 @@ import { openModal, closeModal } from './nav.js';
 let db;
 let operatoreCorrente = 'Operatori';
 let tuttiProdotti = [];
+let congelatiVisibile = false;
 
 export function setOperatore(email) {
   operatoreCorrente = email || 'Operatori';
@@ -42,6 +43,9 @@ export function initMagazzino(firestoreDb) {
 
   // Click delegato sulle card
   document.getElementById('list-materia-prima').addEventListener('click', gestisciClickCard);
+
+  // Congelati
+  document.getElementById('toggle-congelati-mp').addEventListener('click', toggleCongelati);
 }
 
 // ─── Caricamento real-time ───────────────────────────────────────
@@ -50,7 +54,18 @@ function caricaProdotti() {
   onSnapshot(q, snap => {
     tuttiProdotti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderProdotti();
+    aggiornaArticoliDatalist();
+    if (congelatiVisibile) renderCongelati();
   });
+}
+
+// ─── Datalist articoli ────────────────────────────────────────────
+function aggiornaArticoliDatalist() {
+  const dl = document.getElementById('articoli-datalist');
+  if (!dl) return;
+  const articoli = [...new Set(tuttiProdotti.map(p => p.articolo).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+  dl.innerHTML = articoli.map(a => `<option value="${a}">`).join('');
 }
 
 // ─── Render ─────────────────────────────────────────────────────
@@ -59,6 +74,7 @@ function renderProdotti() {
   const fornitore = document.getElementById('filter-fornitore').value;
 
   const filtrati = tuttiProdotti
+    .filter(p => !p.congelato)
     .filter(p => fornitore === 'tutti' || p.idFornitore === fornitore)
     .filter(p =>
       (p.nome?.toLowerCase().includes(testo)) ||
@@ -211,6 +227,7 @@ function apriModalModifica(id) {
 
   document.getElementById('p-nome').value     = p.nome    ?? '';
   document.getElementById('p-codice').value   = p.codice  ?? '';
+  document.getElementById('p-articolo').value = p.articolo ?? '';
   document.getElementById('p-fornitore').value = p.idFornitore ?? '';
   document.getElementById('p-quantita').value = p.quantitaDisponibile ?? 0;
   document.getElementById('p-soglia').value   = p.sogliaAvviso ?? 0;
@@ -232,6 +249,7 @@ async function salvaProdotto(e) {
   const dati = {
     nome:               document.getElementById('p-nome').value.trim(),
     codice:             document.getElementById('p-codice').value.trim(),
+    articolo:           document.getElementById('p-articolo').value.trim(),
     idFornitore:        document.getElementById('p-fornitore').value,
     quantitaDisponibile: Number(document.getElementById('p-quantita').value),
     sogliaAvviso:       Number(document.getElementById('p-soglia').value),
@@ -260,5 +278,63 @@ async function eliminaProdotto(id, nome) {
     await deleteDoc(doc(db, "prodotti", id));
   } catch (err) {
     console.error("Errore eliminazione:", err);
+  }
+}
+
+// ─── Congelati ────────────────────────────────────────────────────
+function toggleCongelati() {
+  congelatiVisibile = !congelatiVisibile;
+  const btn  = document.getElementById('toggle-congelati-mp');
+  const list = document.getElementById('list-congelati-mp');
+  btn.innerHTML = congelatiVisibile
+    ? `<i class="fas fa-eye-slash"></i> Nascondi Congelati`
+    : `<i class="fas fa-snowflake"></i> Congelati`;
+  list.classList.toggle('hidden', !congelatiVisibile);
+  if (congelatiVisibile) renderCongelati();
+}
+
+function renderCongelati() {
+  const congelati = tuttiProdotti.filter(p => p.congelato);
+  const container = document.getElementById('list-congelati-mp');
+
+  if (congelati.length === 0) {
+    container.innerHTML = '<div class="pf-archivio-section"><h4>Congelati</h4><p class="empty-state">Nessun colore congelato.</p></div>';
+    return;
+  }
+
+  const sorted = [...congelati].sort((a, b) => a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' }));
+
+  container.innerHTML = '';
+  const section = document.createElement('div');
+  section.className = 'pf-archivio-section';
+  section.innerHTML = `<h4><i class="fas fa-snowflake" style="margin-right:.35rem"></i>Congelati (${congelati.length})</h4>`;
+
+  sorted.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'pf-archivio-row';
+    row.innerHTML = `
+      <div>
+        <div class="pf-archivio-nome">${p.nome}</div>
+        <div class="pf-archivio-meta">
+          ${p.codice ? `<span>${p.codice}</span>` : ''}
+          <span>${p.idFornitore ?? '—'}</span>
+        </div>
+      </div>
+      <button class="btn-ghost btn-sm ripristina-mp-btn" data-id="${p.id}" style="flex-shrink:0">
+        <i class="fas fa-undo"></i> Ripristina
+      </button>
+    `;
+    row.querySelector('.ripristina-mp-btn').addEventListener('click', () => ripristinaCongelato(p.id));
+    section.appendChild(row);
+  });
+
+  container.appendChild(section);
+}
+
+async function ripristinaCongelato(id) {
+  try {
+    await updateDoc(doc(db, "prodotti", id), { congelato: false });
+  } catch (err) {
+    console.error("Errore ripristino:", err);
   }
 }

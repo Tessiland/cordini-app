@@ -225,7 +225,7 @@ function fmt(n) { return Number.isFinite(n) ? n.toFixed(1) : '—'; }
 // ─── Render inbox unificata ───────────────────────────────────────
 function renderInbox() {
   const pf         = getProdottiFiniti();
-  const mp         = getProdotti();
+  const mp         = getProdotti().filter(p => !p.congelato);
   const rot        = calcolaRotazioni();
   const automatici = generaAlertAutomatici(pf, mp, rot);
 
