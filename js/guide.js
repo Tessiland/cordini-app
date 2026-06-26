@@ -29,22 +29,23 @@ const GUIDE = {
   alert: {
     titolo: 'Alert',
     flusso: [
-      'Ogni mattina guarda la lista — è ordinata per urgenza, i rossi sono in cima.',
-      'Usa i <b>chip filtro</b> in cima per vedere solo i critici 🔴, solo le attenzioni 🟠, o solo i manuali 📌.',
-      'Clicca su qualsiasi riga per espandere il dettaglio: rotazione, stock, producibilità, conflitti.',
-      'Per segnalare un evento futuro (tutorial, promozione) clicca <b>+ Nuovo</b>: scegli il prodotto, scrivi le note e inserisci la data dell\'evento. Il sistema decide automaticamente la priorità.',
-      'La priorità degli alert si aggiorna da sola ogni volta che il magazzino cambia — non devi fare nulla.',
+      'La dashboard è divisa in <b>3 corsie</b> per capire subito il tipo di problema.',
+      'Usa i <b>chip filtro</b> in cima per vedere solo una corsia: 🔴 produzione ferma, 🟠 scorte in esaurimento, 🔵 materia prima, 📌 manuali.',
+      'Clicca su qualsiasi riga per espandere il dettaglio con le metriche complete.',
+      'In fondo alla vista "Tutti" c\'è il cassetto <b>In osservazione</b> (2–8 settimane): clicca per espandere.',
+      'Per segnalare un evento futuro (tutorial, promozione) clicca <b>+ Nuovo</b>: scegli il prodotto, scrivi le note e inserisci la data dell\'evento.',
+      'Tutto si aggiorna da solo ogni volta che il magazzino cambia — non devi fare nulla.',
     ],
     funzioni: [
-      { ic: 'fa-circle',              txt: '<b>🔴 Critico automatico</b> — stock a zero, oppure copertura sotto 4 settimane. Diventa rosso anche se c\'è un conflitto MP critico (rotazione 2× superiore) e lo stock è già sotto le 4 settimane' },
-      { ic: 'fa-circle',              txt: '<b>🟠 Attenzione automatico</b> — copertura totale tra 4 e 8 settimane. I conflitti MP da soli non generano questo alert: appaiono come informazione nel dettaglio' },
+      { ic: 'fa-circle',              txt: '<b>🔴 Produzione ferma</b> — stock a zero. Ogni riga indica se puoi produrre subito (MP disponibile) oppure devi ordinare materia prima al fornitore' },
+      { ic: 'fa-circle',              txt: '<b>🟠 Scorte in esaurimento</b> — copertura totale sotto 2 settimane. Aprendo il dettaglio trovi la spiegazione "finiscono tra X settimane"' },
+      { ic: 'fa-circle',              txt: '<b>🔵 Materia prima</b> — materia prima che si esaurisce entro 2 settimane e bloccherà la produzione. Mostra quanti prodotti finiti sono coinvolti' },
       { ic: 'fa-thumbtack',           txt: '<b>📌 Alert manuale</b> — evento segnalato dall\'operatore (tutorial, promozione…). Il livello è calcolato dal sistema in base allo stock e alla data evento' },
       { ic: 'fa-chart-line',          txt: '<b>Rotazione</b> — rocche uscite in media per settimana negli ultimi 60 giorni' },
       { ic: 'fa-shield-halved',       txt: '<b>Copertura</b> — settimane garantite da stock attuale + producibilità dalla materia prima' },
-      { ic: 'fa-triangle-exclamation',txt: '<b>Conflitto MP</b> — la stessa materia prima serve a un prodotto con rotazione più alta; è solo informativo a meno che non sia critico (2×) con stock già basso' },
       { ic: 'fa-pen',                 txt: '<b>Modifica alert manuale</b> — aggiorna note o data evento; il sistema rivaluta subito la priorità' },
-      { ic: 'fa-ban',                 txt: '<b>Archivia come eliminato</b> — disponibile nel dettaglio di ogni alert automatico; sposta il prodotto finito nell\'archivio eliminati (non appare più in magazzino né negli alert)' },
-      { ic: 'fa-bell',                txt: '<b>Badge nav</b> — mostra solo il numero di alert 🔴 critici; si azzera quando non ce ne sono' },
+      { ic: 'fa-ban',                 txt: '<b>Archivia come eliminato</b> — disponibile nel dettaglio di ogni alert; sposta il prodotto finito nell\'archivio eliminati' },
+      { ic: 'fa-bell',                txt: '<b>Badge nav</b> — mostra il numero di prodotti con produzione ferma (stock 0)' },
     ]
   },
 

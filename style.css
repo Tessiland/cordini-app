@@ -20,6 +20,9 @@
   --warning-dim:  rgba(245, 158, 11, 0.12);
   --danger:       #EF4444;
   --danger-dim:   rgba(239, 68, 68, 0.12);
+  --mp:           #818CF8;
+  --mp-dim:       rgba(129, 140, 248, 0.12);
+  --monitor:      #64748B;
 
   --text-primary:   #F1F5F9;
   --text-secondary: #94A3B8;
@@ -2670,6 +2673,104 @@ tbody tr.row-done td   { color: var(--text-muted); text-decoration: line-through
 .alert-detail-item { display: flex; flex-direction: column; }
 .alert-detail-label { font-size: .62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
 .alert-detail-val   { font-size: .78rem; color: var(--text-secondary); }
+
+/* ── Alert dashboard — corsie ─────────────────────────────────── */
+.alert-corsia { margin-bottom: 1rem; }
+.alert-corsia:last-child { margin-bottom: 0; }
+
+.alert-corsia-header {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem 0;
+  margin-bottom: .2rem;
+}
+.alert-corsia-header::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.alert-corsia-header.rosso::before   { background: var(--danger); }
+.alert-corsia-header.arancio::before { background: var(--warning); }
+.alert-corsia-header.mp::before      { background: var(--mp); }
+.alert-corsia-header.manuale::before { background: var(--text-muted); }
+
+.alert-corsia-titolo {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-secondary);
+}
+.alert-corsia-count {
+  font-size: .62rem;
+  font-weight: 700;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.alert-row.mp      { border-left-color: var(--mp); }
+.alert-row.monitor { border-left-color: var(--monitor); }
+.alert-row-bullet.mp      { background: var(--mp); }
+.alert-row-bullet.monitor { background: var(--monitor); }
+.sett-mp      { color: var(--mp); }
+.sett-monitor { color: var(--monitor); }
+
+.alert-row-tag {
+  font-size: .62rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  margin-top: 2px;
+  width: fit-content;
+}
+.tag-producibile { background: var(--success-dim); color: var(--success); }
+.tag-ordina      { background: var(--danger-dim);  color: var(--danger); }
+.tag-nd          { color: var(--text-muted); font-weight: 400; padding: 0; }
+
+.alert-row-spiegazione {
+  font-size: .75rem;
+  color: var(--text-secondary);
+  padding-bottom: .4rem;
+  line-height: 1.4;
+}
+
+.alert-cassetto {
+  margin-top: .75rem;
+  border-top: 1px solid var(--border);
+  padding-top: .5rem;
+}
+.alert-cassetto-header {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem 0;
+  cursor: pointer;
+  user-select: none;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.alert-cassetto-chevron {
+  font-size: .55rem;
+  transition: transform .2s ease;
+}
+.alert-cassetto-count {
+  font-size: .62rem;
+  font-weight: 700;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.alert-cassetto-body { margin-top: .25rem; }
 
 /* ── Archivio eliminati ──────────────────────────────────────── */
 .pf-archivio-section {

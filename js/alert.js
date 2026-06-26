@@ -7,8 +7,8 @@ import { getProdotti }        from './magazzino.js';
 import { openModal, closeModal } from './nav.js';
 
 const GIORNI         = 60;
-const SOGLIA_ROSSO   = 4;   // settimane
-const SOGLIA_ARANCIO = 8;   // settimane
+const SOGLIA_URGENTE = 2;   // settimane — corsie esaurimento + MP
+const SOGLIA_MONITOR = 8;   // settimane — cassetto "in osservazione"
 const PESO_ROCCA_KG  = 0.200;
 
 let db;
@@ -30,7 +30,7 @@ export function initAlert(firestoreDb) {
     document.querySelectorAll('.alert-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     filtroAttivo = chip.dataset.filtro;
-    renderInbox();
+    renderDashboard();
   });
 }
 
@@ -44,7 +44,7 @@ function caricaMovimenti() {
   );
   onSnapshot(q, snap => {
     movimentiCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderInbox();
+    renderDashboard();
   }, err => console.error("Errore movimenti alert:", err));
 }
 
@@ -52,7 +52,7 @@ function caricaAlertManuali() {
   const q = query(collection(db, "alert_manuali"), orderBy("createdAt", "desc"));
   onSnapshot(q, snap => {
     alertManuali = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderInbox();
+    renderDashboard();
   }, err => console.error("Errore alert manuali:", err));
 }
 
@@ -83,38 +83,11 @@ function calcolaProducibilita(pf, prodottiMP) {
   return isFinite(minKgPF) ? Math.floor(minKgPF / PESO_ROCCA_KG) : 0;
 }
 
-function trovaConflitti(pf, tuttiPF, rotazioni) {
-  const mieMP  = new Set((pf.coloriComponenti ?? []).map(c => c.idProdotto).filter(Boolean));
-  if (mieMP.size === 0) return [];
-  const rotMia = rotazioni[pf.id] ?? 0;
-  const conflitti = [];
-  tuttiPF.forEach(altro => {
-    if (altro.id === pf.id || altro.eliminato) return;
-    const rotAltro = rotazioni[altro.id] ?? 0;
-    if (rotAltro <= rotMia) return;
-    const condivise = (altro.coloriComponenti ?? []).filter(c => mieMP.has(c.idProdotto));
-    if (condivise.length > 0) {
-      conflitti.push({
-        nome:      `${altro.nome ?? ''} ${altro.colore ?? ''}`.trim(),
-        rotazione: rotAltro,
-        rapporto:  rotMia > 0 ? rotAltro / rotMia : null
-      });
-    }
-  });
-  return conflitti.sort((a, b) => b.rotazione - a.rotazione);
-}
-
-// ─── Alert automatici ────────────────────────────────────────────
-// Logica:
-// - Stock = 0                         → 🔴 Critico sempre
-// - Stock > 0 + rotazione nota:
-//     copertura < 4 sett.             → 🔴 Critico
-//     copertura 4-8 sett.             → 🟠 Attenzione
-//     conflitto MP critico            → promuove di un livello
-//     copertura > 8 sett.             → non mostrato
-// - Stock > 0 + nessuna rotazione     → non mostrato (scorte ok, domanda ignota)
-function generaAlertAutomatici(prodottiFiniti, prodottiMP, rotazioni) {
-  const alerts = [];
+// ─── Generazione alert prodotto finito ───────────────────────────
+function generaAlertPF(prodottiFiniti, prodottiMP, rotazioni) {
+  const fermi        = [];
+  const esaurimento  = [];
+  const osservazione = [];
 
   prodottiFiniti.forEach(pf => {
     if (pf.eliminato) return;
@@ -122,51 +95,94 @@ function generaAlertAutomatici(prodottiFiniti, prodottiMP, rotazioni) {
     const stock         = pf.quantitaRocche ?? 0;
     const rotazione     = rotazioni[pf.id] ?? 0;
     const producibilita = calcolaProducibilita(pf, prodottiMP);
-    const conflitti     = trovaConflitti(pf, prodottiFiniti, rotazioni);
+    const puoProdurre   = producibilita !== null && producibilita > 0;
 
-    // Stock zero → critico sempre
     if (stock === 0) {
-      alerts.push({
-        tipo: 'auto', livello: 'rosso', pf,
-        rotazione, stock, producibilita,
-        settimaneStock: 0, settimaneProd: producibilita !== null ? Infinity : null,
-        settimaneTotali: producibilita !== null && producibilita > 0
-          ? producibilita / Math.max(rotazione, 0.01)
-          : 0,
-        conflitti, motivoZero: true
+      fermi.push({
+        corsia: 'fermi', pf, stock, rotazione, producibilita, puoProdurre,
+        settimaneStock: 0,
+        settimaneTotali: puoProdurre ? producibilita / Math.max(rotazione, 0.01) : 0
       });
       return;
     }
 
-    // Stock > 0 ma rotazione ignota → non mostrare
     if (rotazione === 0) return;
 
     const settimaneStock  = stock / rotazione;
     const settimaneProd   = producibilita !== null ? producibilita / rotazione : null;
     const settimaneTotali = settimaneStock + (settimaneProd ?? 0);
-    const haConflittiCritici = conflitti.some(c => c.rapporto && c.rapporto >= 2);
 
-    let livello;
-    if (settimaneTotali < SOGLIA_ROSSO || (haConflittiCritici && settimaneStock < SOGLIA_ROSSO)) {
-      livello = 'rosso';
-    } else if (settimaneTotali < SOGLIA_ARANCIO) {
-      livello = 'arancio';
-    } else {
-      return; // verde, non mostrare — i conflitti MP sono info nel dettaglio, non alzano il livello se copertura ok
+    if (settimaneTotali < SOGLIA_URGENTE) {
+      esaurimento.push({
+        corsia: 'esaurimento', pf, stock, rotazione, producibilita, puoProdurre,
+        settimaneStock, settimaneProd, settimaneTotali
+      });
+    } else if (settimaneTotali < SOGLIA_MONITOR) {
+      osservazione.push({
+        corsia: 'osservazione', pf, stock, rotazione, producibilita, puoProdurre,
+        settimaneStock, settimaneProd, settimaneTotali
+      });
     }
-
-    alerts.push({ tipo: 'auto', livello, pf, rotazione, stock, producibilita,
-      settimaneStock, settimaneProd, settimaneTotali, conflitti, motivoZero: false });
   });
 
-  return alerts;
+  fermi.sort((a, b) => {
+    if (a.puoProdurre !== b.puoProdurre) return a.puoProdurre ? 1 : -1;
+    return (a.pf.nome ?? '').localeCompare(b.pf.nome ?? '', 'it');
+  });
+  esaurimento.sort((a, b) => a.settimaneTotali - b.settimaneTotali);
+  osservazione.sort((a, b) => a.settimaneTotali - b.settimaneTotali);
+
+  return { fermi, esaurimento, osservazione };
 }
 
-// ─── Alert manuali — rivalutazione automatica ────────────────────
-// Il livello viene calcolato dal sistema in base a:
-// - Settimane di copertura attuale del prodotto
-// - Settimane mancanti all'evento (se dataEvento presente)
-// - Senza data: usa la copertura diretta come gli automatici
+// ─── Generazione alert materia prima ─────────────────────────────
+function generaAlertMP(prodottiFiniti, prodottiMP, rotazioni) {
+  const mpConsumi = {};
+
+  prodottiFiniti.forEach(pf => {
+    if (pf.eliminato) return;
+    const rot = rotazioni[pf.id] ?? 0;
+    if (rot === 0) return;
+
+    (pf.coloriComponenti ?? []).forEach(comp => {
+      const mp = prodottiMP.find(p => p.id === comp.idProdotto);
+      if (!mp?.kgPerCartone) return;
+
+      const pct = (comp.percentuale ?? 0) / 100;
+      if (pct <= 0) return;
+
+      const consumoKgSett = rot * PESO_ROCCA_KG * pct;
+
+      if (!mpConsumi[mp.id]) {
+        mpConsumi[mp.id] = { mp, consumoKgSett: 0, pfCoinvolti: [] };
+      }
+      mpConsumi[mp.id].consumoKgSett += consumoKgSett;
+      mpConsumi[mp.id].pfCoinvolti.push({
+        nome: `${pf.nome ?? ''} — ${pf.colore ?? ''}`.trim(),
+        consumoKgSett
+      });
+    });
+  });
+
+  const alerts = [];
+  Object.values(mpConsumi).forEach(({ mp, consumoKgSett, pfCoinvolti }) => {
+    if (consumoKgSett <= 0) return;
+    const kgDisponibili = (mp.quantitaDisponibile ?? 0) * (mp.kgPerCartone ?? 0);
+    const settCopertura = kgDisponibili / consumoKgSett;
+
+    if (settCopertura < SOGLIA_URGENTE) {
+      alerts.push({
+        corsia: 'mp', mp, kgDisponibili, consumoKgSett, settCopertura,
+        cartoniDisponibili: mp.quantitaDisponibile ?? 0,
+        pfCoinvolti: pfCoinvolti.sort((a, b) => b.consumoKgSett - a.consumoKgSett)
+      });
+    }
+  });
+
+  return alerts.sort((a, b) => a.settCopertura - b.settCopertura);
+}
+
+// ─── Valutazione alert manuali ───────────────────────────────────
 function valutaAlertManuale(a, rotazioni, prodottiFiniti, prodottiMP) {
   const pf = prodottiFiniti.find(p => p.id === a.idProdotto);
   if (!pf) return { livello: 'arancio', settimaneEvento: null, copertura: null };
@@ -175,14 +191,12 @@ function valutaAlertManuale(a, rotazioni, prodottiFiniti, prodottiMP) {
   const rotazione     = rotazioni[pf.id] ?? 0;
   const producibilita = calcolaProducibilita(pf, prodottiMP);
 
-  // Settimane all'evento (se data specificata)
   let settimaneEvento = null;
   if (a.dataEvento) {
     const ms = new Date(a.dataEvento + 'T00:00:00') - new Date();
     settimaneEvento = Math.max(0, ms / (1000 * 60 * 60 * 24 * 7));
   }
 
-  // Copertura totale (stock + producibile)
   let copertura = null;
   if (stock === 0) {
     copertura = 0;
@@ -196,138 +210,178 @@ function valutaAlertManuale(a, rotazioni, prodottiFiniti, prodottiMP) {
   if (stock === 0) {
     livello = 'rosso';
   } else if (settimaneEvento !== null && copertura !== null) {
-    // Con data evento: confronta copertura vs scadenza
     const margine = copertura - settimaneEvento;
-    if (margine < 0)           livello = 'rosso';   // finisce prima dell'evento
-    else if (margine < SOGLIA_ROSSO) livello = 'arancio'; // poco margine
-    else                       livello = 'verde';
+    if (margine < 0)                   livello = 'rosso';
+    else if (margine < SOGLIA_URGENTE) livello = 'arancio';
+    else                               livello = 'verde';
   } else if (copertura !== null) {
-    // Senza data: usa le stesse soglie degli automatici
-    if (copertura < SOGLIA_ROSSO)   livello = 'rosso';
-    else if (copertura < SOGLIA_ARANCIO) livello = 'arancio';
-    else                            livello = 'verde';
+    if (copertura < SOGLIA_URGENTE)      livello = 'rosso';
+    else if (copertura < SOGLIA_MONITOR) livello = 'arancio';
+    else                                 livello = 'verde';
   } else {
-    livello = 'arancio'; // non abbiamo dati sufficienti
+    livello = 'arancio';
   }
 
   return { livello, settimaneEvento, copertura };
 }
 
-// ─── Ordinamento ─────────────────────────────────────────────────
-function priorita(a) {
-  if (a.livello === 'rosso')   return a.tipo === 'auto' ? 0 : 1;
-  if (a.livello === 'arancio') return a.tipo === 'auto' ? 2 : 3;
-  return 4;
-}
-
 function fmt(n) { return Number.isFinite(n) ? n.toFixed(1) : '—'; }
 
-// ─── Render inbox unificata ───────────────────────────────────────
-function renderInbox() {
-  const pf         = getProdottiFiniti();
-  const mp         = getProdotti().filter(p => !p.congelato);
-  const rot        = calcolaRotazioni();
-  const automatici = generaAlertAutomatici(pf, mp, rot);
+// ─── Render dashboard ─────────────────────────────────────────────
+function renderDashboard() {
+  const pf  = getProdottiFiniti();
+  const mp  = getProdotti().filter(p => !p.congelato);
+  const rot = calcolaRotazioni();
 
-  // Manuali con livello rivalutato dal sistema
+  const { fermi, esaurimento, osservazione } = generaAlertPF(pf, mp, rot);
+  const materiaPrima = generaAlertMP(pf, mp, rot);
+
   const manualiCalcolati = alertManuali.map(a => {
     const valutazione = valutaAlertManuale(a, rot, pf, mp);
     return { tipo: 'manuale', ...a, ...valutazione };
-  }).filter(a => a.livello !== 'verde'); // nascondi i verdi
+  }).filter(a => a.livello !== 'verde');
 
-  const tutti = [...automatici, ...manualiCalcolati].sort((a, b) => {
-    const pa = priorita(a), pb = priorita(b);
-    if (pa !== pb) return pa - pb;
-    if (a.tipo === 'auto' && b.tipo === 'auto') return a.settimaneTotali - b.settimaneTotali;
-    return 0;
-  });
+  const el = id => document.getElementById(id);
+  if (el('alert-count-fermi'))       el('alert-count-fermi').textContent       = fermi.length;
+  if (el('alert-count-esaurimento')) el('alert-count-esaurimento').textContent = esaurimento.length;
+  if (el('alert-count-mp'))          el('alert-count-mp').textContent          = materiaPrima.length;
+  if (el('alert-count-manuale'))     el('alert-count-manuale').textContent     = manualiCalcolati.length;
 
-  const nRossi   = tutti.filter(a => a.livello === 'rosso').length;
-  const nArancio = tutti.filter(a => a.livello === 'arancio').length;
-  const nManuali = manualiCalcolati.length;
-
-  const cR = document.getElementById('alert-count-rosso');
-  const cA = document.getElementById('alert-count-arancio');
-  const cM = document.getElementById('alert-count-manuale');
-  if (cR) cR.textContent = nRossi;
-  if (cA) cA.textContent = nArancio;
-  if (cM) cM.textContent = nManuali;
-
-  aggiornaBadge(nRossi);
-
-  const filtrati = tutti.filter(a => {
-    if (filtroAttivo === 'tutti')   return true;
-    if (filtroAttivo === 'manuale') return a.tipo === 'manuale';
-    return a.livello === filtroAttivo;
-  });
+  aggiornaBadge(fermi.length);
 
   const inbox = document.getElementById('alert-inbox');
   if (!inbox) return;
+  inbox.innerHTML = '';
 
-  if (filtrati.length === 0) {
-    inbox.innerHTML = '<p class="empty-state">Nessun alert. Tutto nella norma.</p>';
-    return;
+  let haContent = false;
+
+  if (filtroAttivo === 'tutti' || filtroAttivo === 'fermi') {
+    if (fermi.length > 0) {
+      inbox.appendChild(creaCorsia('Produzione ferma', 'rosso', fermi, creaRigaFermi));
+      haContent = true;
+    }
+  }
+  if (filtroAttivo === 'tutti' || filtroAttivo === 'esaurimento') {
+    if (esaurimento.length > 0) {
+      inbox.appendChild(creaCorsia('Scorte in esaurimento', 'arancio', esaurimento, creaRigaEsaurimento));
+      haContent = true;
+    }
+  }
+  if (filtroAttivo === 'tutti' || filtroAttivo === 'mp') {
+    if (materiaPrima.length > 0) {
+      inbox.appendChild(creaCorsia('Materia prima', 'mp', materiaPrima, creaRigaMP));
+      haContent = true;
+    }
+  }
+  if (filtroAttivo === 'tutti' || filtroAttivo === 'manuale') {
+    if (manualiCalcolati.length > 0) {
+      inbox.appendChild(creaCorsia('Alert manuali', 'manuale', manualiCalcolati, creaRigaManuale));
+      haContent = true;
+    }
   }
 
-  inbox.innerHTML = '';
-  const list = document.createElement('div');
-  list.className = 'alert-rows';
-  filtrati.forEach(a => list.appendChild(
-    a.tipo === 'auto' ? creaRigaAuto(a) : creaRigaManuale(a)
-  ));
-  inbox.appendChild(list);
+  if ((filtroAttivo === 'tutti' || filtroAttivo === 'esaurimento') && osservazione.length > 0) {
+    inbox.appendChild(creaCassetto(osservazione));
+    haContent = true;
+  }
+
+  if (!haContent) {
+    inbox.innerHTML = '<p class="empty-state">Nessun alert attivo.</p>';
+  }
 }
 
-// ─── Riga alert automatico ────────────────────────────────────────
-function creaRigaAuto(a) {
-  const { livello, pf, rotazione, stock, producibilita,
-    settimaneStock, settimaneProd, settimaneTotali, conflitti, motivoZero } = a;
+// ─── Corsia ───────────────────────────────────────────────────────
+function creaCorsia(titolo, tipo, items, creaRiga) {
+  const section = document.createElement('div');
+  section.className = 'alert-corsia';
 
-  const conflittoIco = conflitti.length > 0
-    ? `<i class="fas fa-triangle-exclamation alert-row-warn" title="Conflitto MP"></i>` : '';
-  const settCol  = livello === 'rosso' ? 'sett-rosso' : 'sett-arancio';
-  const settTesto = motivoZero ? 'Stock 0' : `${fmt(settimaneTotali)} sett.`;
+  const header = document.createElement('div');
+  header.className = `alert-corsia-header ${tipo}`;
+  header.innerHTML = `
+    <span class="alert-corsia-titolo">${titolo}</span>
+    <span class="alert-corsia-count">${items.length}</span>
+  `;
+  section.appendChild(header);
+
+  const list = document.createElement('div');
+  list.className = 'alert-rows';
+  items.forEach(item => list.appendChild(creaRiga(item)));
+  section.appendChild(list);
+
+  return section;
+}
+
+// ─── Cassetto "In osservazione" ──────────────────────────────────
+function creaCassetto(items) {
+  const wrap = document.createElement('div');
+  wrap.className = 'alert-cassetto';
+
+  const header = document.createElement('div');
+  header.className = 'alert-cassetto-header';
+  header.innerHTML = `
+    <i class="fas fa-chevron-right alert-cassetto-chevron"></i>
+    <span>In osservazione</span>
+    <span class="alert-cassetto-count">${items.length}</span>
+  `;
+  wrap.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'alert-cassetto-body hidden';
+  const list = document.createElement('div');
+  list.className = 'alert-rows';
+  items.forEach(a => list.appendChild(creaRigaEsaurimento(a)));
+  body.appendChild(list);
+  wrap.appendChild(body);
+
+  header.addEventListener('click', () => {
+    const open = wrap.classList.toggle('open');
+    body.classList.toggle('hidden', !open);
+    header.querySelector('.alert-cassetto-chevron').style.transform = open ? 'rotate(90deg)' : '';
+  });
+
+  return wrap;
+}
+
+// ─── Riga "Produzione ferma" ─────────────────────────────────────
+function creaRigaFermi(a) {
+  const { pf, producibilita, puoProdurre, rotazione } = a;
+
+  let tagHtml;
+  if (puoProdurre) {
+    tagHtml = `<span class="alert-row-tag tag-producibile"><i class="fas fa-industry"></i> Producibile · ${producibilita} rocche</span>`;
+  } else if (producibilita === 0) {
+    tagHtml = `<span class="alert-row-tag tag-ordina"><i class="fas fa-boxes-stacked"></i> MP esaurita · ordina al fornitore</span>`;
+  } else {
+    tagHtml = `<span class="alert-row-tag tag-nd">${pf.fornitore ?? ''}</span>`;
+  }
 
   const row = document.createElement('div');
-  row.className = `alert-row ${livello}`;
+  row.className = 'alert-row rosso';
   row.innerHTML = `
     <div class="alert-row-summary">
-      <span class="alert-row-bullet ${livello}"></span>
+      <span class="alert-row-bullet rosso"></span>
       <div class="alert-row-nome">
         <span class="alert-row-prodotto">${pf.nome ?? '—'} — ${pf.colore ?? '—'}</span>
-        <span class="alert-row-colore">${pf.fornitore ?? ''}</span>
+        ${tagHtml}
       </div>
-      <span class="alert-row-sett ${settCol}">${settTesto}</span>
-      ${conflittoIco}
+      <span class="alert-row-sett sett-rosso">Stock 0</span>
       <i class="fas fa-chevron-right alert-row-chevron"></i>
     </div>
     <div class="alert-row-detail hidden">
       <div class="alert-detail-grid">
         <div class="alert-detail-item">
-          <span class="alert-detail-label">Stock attuale</span>
-          <span class="alert-detail-val">${stock} rocche${rotazione > 0 ? ` (${fmt(settimaneStock)} sett.)` : ''}</span>
+          <span class="alert-detail-label">Fornitore</span>
+          <span class="alert-detail-val">${pf.fornitore ?? '—'}</span>
         </div>
         <div class="alert-detail-item">
           <span class="alert-detail-label">Rotazione</span>
-          <span class="alert-detail-val">${rotazione > 0 ? `${fmt(rotazione)} rocche/sett · ultimi ${GIORNI}gg` : 'Nessun dato storico'}</span>
+          <span class="alert-detail-val">${rotazione > 0 ? `${fmt(rotazione)} rocche/sett · ultimi ${GIORNI}gg` : 'Nessun prelievo recente'}</span>
         </div>
         <div class="alert-detail-item">
-          <span class="alert-detail-label">Producibile</span>
-          <span class="alert-detail-val">${producibilita !== null
-            ? `${producibilita} rocche${rotazione > 0 ? ` (${fmt(settimaneProd)} sett.)` : ''}`
-            : 'N/D — kgPerCartone mancante'}</span>
-        </div>
-        <div class="alert-detail-item">
-          <span class="alert-detail-label">Copertura totale</span>
-          <span class="alert-detail-val" style="font-weight:700">${motivoZero ? '—' : `${fmt(settimaneTotali)} settimane`}</span>
+          <span class="alert-detail-label">Producibile da MP</span>
+          <span class="alert-detail-val">${producibilita !== null ? `${producibilita} rocche` : 'N/D — dati incompleti'}</span>
         </div>
       </div>
-      ${conflitti.length > 0 ? `
-        <div class="alert-conflitti">
-          <i class="fas fa-triangle-exclamation"></i>
-          Stessa MP usata da:
-          ${conflitti.map(c => `<strong>${c.nome}</strong>${c.rapporto ? ` (${c.rapporto.toFixed(1)}×)` : ''}`).join(', ')}
-        </div>` : ''}
       <div style="margin-top:.5rem">
         <button class="btn-ghost btn-sm btn-ghost-danger archivia-pf-btn" data-id="${pf.id}" data-nome="${pf.nome} — ${pf.colore}">
           <i class="fas fa-ban"></i> Archivia come eliminato
@@ -337,18 +391,119 @@ function creaRigaAuto(a) {
   `;
 
   row.querySelector('.alert-row-summary').addEventListener('click', () => toggleRiga(row));
-  row.querySelector('.archivia-pf-btn').addEventListener('click', e => {
-    e.stopPropagation();
-    const btn = e.currentTarget;
-    if (!confirm(`Archiviare "${btn.dataset.nome}" come eliminato?\nNon sarà più visibile nel magazzino né negli alert.`)) return;
-    updateDoc(doc(db, "prodotti_finiti", btn.dataset.id), { eliminato: true })
-      .catch(err => alert(`Errore: ${err.message}`));
-  });
+  row.querySelector('.archivia-pf-btn').addEventListener('click', archiviaHandler);
 
   return row;
 }
 
-// ─── Riga alert manuale ───────────────────────────────────────────
+// ─── Riga "Scorte in esaurimento" / "In osservazione" ────────────
+function creaRigaEsaurimento(a) {
+  const { pf, stock, rotazione, producibilita, puoProdurre,
+    settimaneStock, settimaneProd, settimaneTotali, corsia } = a;
+
+  const isMonitor  = corsia === 'osservazione';
+  const colorClass = isMonitor ? 'monitor' : 'arancio';
+  const settCol    = isMonitor ? 'sett-monitor' : 'sett-arancio';
+
+  const mpInfo = puoProdurre
+    ? 'MP disponibile'
+    : producibilita === 0 ? 'MP esaurita' : '';
+
+  const row = document.createElement('div');
+  row.className = `alert-row ${colorClass}`;
+  row.innerHTML = `
+    <div class="alert-row-summary">
+      <span class="alert-row-bullet ${colorClass}"></span>
+      <div class="alert-row-nome">
+        <span class="alert-row-prodotto">${pf.nome ?? '—'} — ${pf.colore ?? '—'}</span>
+        <span class="alert-row-colore">${pf.fornitore ?? ''}</span>
+      </div>
+      <span class="alert-row-sett ${settCol}">${fmt(settimaneTotali)} sett.</span>
+      <i class="fas fa-chevron-right alert-row-chevron"></i>
+    </div>
+    <div class="alert-row-detail hidden">
+      <div class="alert-row-spiegazione">
+        Al ritmo attuale (~${Math.round(rotazione)}/sett), le ${stock} rocche finiscono tra ~${fmt(settimaneStock)} settimane${mpInfo ? ` · ${mpInfo}` : ''}
+      </div>
+      <div class="alert-detail-grid">
+        <div class="alert-detail-item">
+          <span class="alert-detail-label">Stock</span>
+          <span class="alert-detail-val">${stock} rocche (${fmt(settimaneStock)} sett.)</span>
+        </div>
+        <div class="alert-detail-item">
+          <span class="alert-detail-label">Rotazione</span>
+          <span class="alert-detail-val">${fmt(rotazione)} rocche/sett</span>
+        </div>
+        <div class="alert-detail-item">
+          <span class="alert-detail-label">Producibile</span>
+          <span class="alert-detail-val">${producibilita !== null
+            ? `${producibilita} rocche${settimaneProd !== null ? ` (${fmt(settimaneProd)} sett.)` : ''}`
+            : 'N/D'}</span>
+        </div>
+        <div class="alert-detail-item">
+          <span class="alert-detail-label">Copertura totale</span>
+          <span class="alert-detail-val" style="font-weight:700">${fmt(settimaneTotali)} settimane</span>
+        </div>
+      </div>
+      <div style="margin-top:.5rem">
+        <button class="btn-ghost btn-sm btn-ghost-danger archivia-pf-btn" data-id="${pf.id}" data-nome="${pf.nome} — ${pf.colore}">
+          <i class="fas fa-ban"></i> Archivia come eliminato
+        </button>
+      </div>
+    </div>
+  `;
+
+  row.querySelector('.alert-row-summary').addEventListener('click', () => toggleRiga(row));
+  row.querySelector('.archivia-pf-btn').addEventListener('click', archiviaHandler);
+
+  return row;
+}
+
+// ─── Riga "Materia prima" ────────────────────────────────────────
+function creaRigaMP(a) {
+  const { mp, kgDisponibili, consumoKgSett, settCopertura,
+    pfCoinvolti, cartoniDisponibili } = a;
+
+  const nPF = pfCoinvolti.length;
+  const settTesto = cartoniDisponibili === 0
+    ? 'Esaurita' : `${fmt(settCopertura)} sett.`;
+
+  const row = document.createElement('div');
+  row.className = 'alert-row mp';
+  row.innerHTML = `
+    <div class="alert-row-summary">
+      <span class="alert-row-bullet mp"></span>
+      <div class="alert-row-nome">
+        <span class="alert-row-prodotto">${mp.nome ?? '—'}</span>
+        <span class="alert-row-colore">Blocca ${nPF} prodott${nPF === 1 ? 'o' : 'i'} finit${nPF === 1 ? 'o' : 'i'}</span>
+      </div>
+      <span class="alert-row-sett sett-mp">${settTesto}</span>
+      <i class="fas fa-chevron-right alert-row-chevron"></i>
+    </div>
+    <div class="alert-row-detail hidden">
+      <div class="alert-detail-grid">
+        <div class="alert-detail-item">
+          <span class="alert-detail-label">Disponibilità</span>
+          <span class="alert-detail-val">${cartoniDisponibili} carton${cartoniDisponibili === 1 ? 'e' : 'i'} (${fmt(kgDisponibili)} kg)</span>
+        </div>
+        <div class="alert-detail-item">
+          <span class="alert-detail-label">Consumo stimato</span>
+          <span class="alert-detail-val">${fmt(consumoKgSett)} kg/sett</span>
+        </div>
+        <div class="alert-detail-item" style="grid-column:1/-1">
+          <span class="alert-detail-label">Prodotti coinvolti</span>
+          <span class="alert-detail-val">${pfCoinvolti.map(p => p.nome).join(', ')}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  row.querySelector('.alert-row-summary').addEventListener('click', () => toggleRiga(row));
+
+  return row;
+}
+
+// ─── Riga alert manuale ──────────────────────────────────────────
 function creaRigaManuale(a) {
   const { livello, settimaneEvento, copertura } = a;
   const etichettaLivello = livello === 'rosso' ? '🔴' : '🟠';
@@ -422,6 +577,7 @@ function creaRigaManuale(a) {
   return row;
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────
 function toggleRiga(row) {
   const detail  = row.querySelector('.alert-row-detail');
   const chevron = row.querySelector('.alert-row-chevron');
@@ -430,12 +586,20 @@ function toggleRiga(row) {
   chevron.style.transform = open ? 'rotate(90deg)' : '';
 }
 
+function archiviaHandler(e) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  if (!confirm(`Archiviare "${btn.dataset.nome}" come eliminato?\nNon sarà più visibile nel magazzino né negli alert.`)) return;
+  updateDoc(doc(db, "prodotti_finiti", btn.dataset.id), { eliminato: true })
+    .catch(err => alert(`Errore: ${err.message}`));
+}
+
 // ─── Badge nav ────────────────────────────────────────────────────
-function aggiornaBadge(nRossi) {
+function aggiornaBadge(nFermi) {
   const badge = document.getElementById('alert-badge');
   if (!badge) return;
-  badge.textContent = nRossi;
-  badge.classList.toggle('hidden', nRossi === 0);
+  badge.textContent = nFermi;
+  badge.classList.toggle('hidden', nFermi === 0);
 }
 
 // ─── Modal alert ─────────────────────────────────────────────────
