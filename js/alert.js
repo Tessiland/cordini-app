@@ -2,8 +2,8 @@ import {
   collection, query, orderBy, where, onSnapshot,
   addDoc, updateDoc, deleteDoc, doc, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getProdottiFiniti } from './prodotto-finito.js';
-import { getProdotti }        from './magazzino.js';
+import { getProdottiFiniti, onProdottiFinatiChange } from './prodotto-finito.js';
+import { getProdotti, onProdottiChange }             from './magazzino.js';
 import { openModal, closeModal } from './nav.js';
 
 const GIORNI         = 60;
@@ -20,6 +20,8 @@ export function initAlert(firestoreDb) {
   db = firestoreDb;
   caricaMovimenti();
   caricaAlertManuali();
+  onProdottiChange(renderDashboard);
+  onProdottiFinatiChange(renderDashboard);
 
   document.getElementById('add-alert-btn').addEventListener('click', apriNuovoAlert);
   document.getElementById('form-alert').addEventListener('submit', salvaAlert);

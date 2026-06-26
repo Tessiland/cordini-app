@@ -14,6 +14,9 @@ let tuttiProdottiFiniti = [];
 let coloriComponentiForm = [];
 let archivioVisibile = false;
 let idSorgentePF = null;
+let _onChangePF = null;
+
+export function onProdottiFinatiChange(cb) { _onChangePF = cb; }
 
 export function setOperatorePF(email) {
   operatoreCorrente = email || 'Operatori';
@@ -93,6 +96,7 @@ function carica() {
     tuttiProdottiFiniti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
     if (archivioVisibile) renderArchivio();
+    _onChangePF?.();
   }, err => console.error("Errore caricamento prodotti finiti:", err));
 }
 

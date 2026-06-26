@@ -9,6 +9,9 @@ let db;
 let operatoreCorrente = 'Operatori';
 let tuttiProdotti = [];
 let soloCongelati = false;
+let _onChange = null;
+
+export function onProdottiChange(cb) { _onChange = cb; }
 
 export function setOperatore(email) {
   operatoreCorrente = email || 'Operatori';
@@ -55,6 +58,7 @@ function caricaProdotti() {
     tuttiProdotti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderProdotti();
     aggiornaArticoliDatalist();
+    _onChange?.();
   });
 }
 
