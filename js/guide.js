@@ -95,12 +95,15 @@ const GUIDE = {
   bacheca: {
     titolo: 'Bacheca',
     flusso: [
-      'Leggi i messaggi dall\'alto: i più recenti sono in cima.',
-      'Seleziona il tuo nome dal menu a tendina, scrivi il messaggio e premi Invia.',
-      'Il numero rosso sulla nav indica messaggi arrivati da quando hai visitato l\'ultima volta la bacheca.',
+      'Leggi i messaggi dall\'alto: i più recenti sono in cima, i nuovi hanno il pallino azzurro.',
+      'Seleziona il tuo nome dal menu a tendina: firma sia i messaggi che invii, sia le spunte di lettura.',
+      'Quando hai letto un messaggio premi <b>Segna come letto</b>: diventa trasparente e il numero rosso scende. La spunta vale per tutti e mostra chi ha letto e quando.',
+      'Sui messaggi letti compare <b>Archivia</b>: il messaggio va nella scheda Archivio, da dove puoi sempre riportarlo in bacheca.',
     ],
     funzioni: [
-      { ic: 'fa-bell',           txt: '<b>Badge notifica</b> — sparisce non appena apri la bacheca' },
+      { ic: 'fa-bell',           txt: '<b>Badge notifica</b> — conta i messaggi che nessuno ha ancora segnato come letti, uguale su tutti i dispositivi' },
+      { ic: 'fa-check-double',   txt: '<b>Segna tutti come letti</b> — azzera in un colpo solo i messaggi arretrati' },
+      { ic: 'fa-box-archive',    txt: '<b>Archivio</b> — i messaggi archiviati restano consultabili, la bacheca mostra solo il vivo' },
       { ic: 'fa-clock-rotate-left', txt: '<b>Storico</b> — vengono mostrati gli ultimi 60 messaggi' },
     ]
   },

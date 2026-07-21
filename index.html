@@ -217,6 +217,17 @@
           <h2>Bacheca</h2>
           <button class="guida-btn" data-guida="bacheca" title="Guida"><i class="fas fa-circle-info"></i></button>
         </div>
+        <div class="bacheca-toolbar">
+          <button class="bacheca-tab active" data-bacheca-tab="messaggi">
+            Messaggi <span class="bacheca-tab-count">0</span>
+          </button>
+          <button class="bacheca-tab" data-bacheca-tab="archivio">
+            <i class="fas fa-box-archive"></i> Archivio <span class="bacheca-tab-count">0</span>
+          </button>
+          <button id="bacheca-segna-tutti" class="btn-ghost btn-sm hidden">
+            <i class="fas fa-check-double"></i> Segna tutti come letti
+          </button>
+        </div>
         <form id="message-form" class="message-composer">
           <select id="operator-select" class="input-select">
             <option>Alessandro</option>
@@ -228,6 +239,7 @@
             <i class="fas fa-paper-plane"></i> Invia
           </button>
         </form>
+        <div id="bacheca-divider" class="bacheca-divider hidden"><span></span></div>
         <div id="message-list" class="message-list"></div>
       </section>
 

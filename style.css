@@ -756,6 +756,133 @@ input[type="file"] {
   color: var(--text-primary);
 }
 
+/* ── Bacheca 2.0: letto / archivio ── */
+.bacheca-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.bacheca-tab {
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.bacheca-tab:hover { background: var(--bg-elevated); }
+
+.bacheca-tab.active {
+  background: var(--accent-dim);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.bacheca-tab-count { font-weight: 700; }
+
+#bacheca-segna-tutti { margin-left: auto; }
+
+.bacheca-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.bacheca-divider.hidden { display: none; }
+
+.bacheca-divider::before,
+.bacheca-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.45));
+}
+
+.bacheca-divider::after {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.45), transparent);
+}
+
+.dot-nuovo {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-dim);
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.message-item {
+  transition: opacity 0.45s ease, transform 0.3s ease;
+}
+
+.message-item.msg-letto { opacity: 0.55; }
+.message-item.msg-letto:hover { opacity: 0.85; }
+
+.message-item.msg-esce {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
+
+.btn-msg {
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  transition: color 0.15s, background 0.15s;
+}
+
+.btn-msg-leggi {
+  border-color: rgba(56, 189, 248, 0.35);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.btn-msg-leggi:hover { background: var(--accent); color: var(--bg-input); }
+
+.btn-msg-archivia { margin-left: auto; }
+.btn-msg-archivia:hover { color: var(--accent); border-color: rgba(56, 189, 248, 0.35); }
+
+.tag-letto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-item { transition: none; }
+}
+
 /* ================================================================
    UPLOAD CARD
 ================================================================ */
